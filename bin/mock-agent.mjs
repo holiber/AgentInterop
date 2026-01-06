@@ -148,12 +148,39 @@ const decoder = new FrameDecoder();
 const sessions = new Map(); // sessionId -> { history: Array<{role, content}>, turns: number }
 let sessionCounter = 0;
 
+const tasks = new Map(); // taskId -> { task, prompt, messageId, turns, cancelled }
+const taskOrder = []; // stable creation order
+let taskCounter = 0;
+
 function getOrCreateSession(sessionId) {
   const existing = sessions.get(sessionId);
   if (existing) return existing;
   const created = { history: [], turns: 0 };
   sessions.set(sessionId, created);
   return created;
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function makeTaskRef({ taskId, agentId, title }) {
+  const ts = nowIso();
+  return {
+    id: taskId,
+    agentId: agentId || "mock-agent",
+    status: "created",
+    title: title || `Mock Task ${taskId}`,
+    createdAt: ts,
+    updatedAt: ts,
+    execution: {
+      location: "local",
+      durability: "ephemeral",
+      providerId: "local",
+      hint: "This task runs locally and may stop if the process exits."
+    },
+    _rawData: { mock: true, kind: "task" }
+  };
 }
 
 await writeMessage({ type: "ready", pid: process.pid, version: 1 });
@@ -165,6 +192,155 @@ async function handleChunk(chunk) {
 
   for (const msg of messages) {
     if (!msg || typeof msg !== "object" || typeof msg.type !== "string") continue;
+
+    if (msg.type === "tasks/create") {
+      const requestedId = typeof msg.taskId === "string" ? msg.taskId : undefined;
+      const taskId = requestedId || `task-${++taskCounter}`;
+      const agentId = typeof msg.agentId === "string" ? msg.agentId : "mock-agent";
+      const title = typeof msg.title === "string" ? msg.title : undefined;
+      const prompt = typeof msg.prompt === "string" ? msg.prompt : "";
+
+      if (!tasks.has(taskId)) {
+        const task = makeTaskRef({ taskId, agentId, title });
+        tasks.set(taskId, {
+          task,
+          prompt,
+          turns: 0,
+          cancelled: false,
+          messageId: `msg-${taskId}-1`
+        });
+        taskOrder.push(taskId);
+      } else {
+        const existing = tasks.get(taskId);
+        if (existing && typeof prompt === "string" && prompt.length > 0) existing.prompt = prompt;
+      }
+
+      await writeMessage({ type: "tasks/created", task: tasks.get(taskId).task });
+      continue;
+    }
+
+    if (msg.type === "tasks/list") {
+      const providerId = typeof msg.providerId === "string" ? msg.providerId : undefined;
+      const status = typeof msg.status === "string" ? msg.status : undefined;
+      const cursorRaw = typeof msg.cursor === "string" ? msg.cursor : undefined;
+      const limitRaw = typeof msg.limit === "string" ? msg.limit : undefined;
+
+      // This mock agent only supports local tasks.
+      if (providerId && providerId !== "local") {
+        await writeMessage({ type: "tasks/listResult", tasks: [], nextCursor: undefined });
+        continue;
+      }
+
+      let offset = 0;
+      if (cursorRaw && cursorRaw.trim().length > 0) {
+        const n = Number(cursorRaw);
+        if (Number.isFinite(n) && n >= 0) offset = Math.floor(n);
+      }
+
+      let limit = 50;
+      if (limitRaw && limitRaw.trim().length > 0) {
+        const n = Number(limitRaw);
+        if (Number.isFinite(n) && n >= 1) limit = Math.floor(n);
+      }
+
+      const all = taskOrder
+        .map((id) => tasks.get(id))
+        .filter(Boolean)
+        .map((t) => t.task);
+
+      const filtered = status ? all.filter((t) => t.status === status) : all;
+      const page = filtered.slice(offset, offset + limit);
+      const nextCursor = offset + limit < filtered.length ? String(offset + limit) : undefined;
+      await writeMessage({ type: "tasks/listResult", tasks: page, nextCursor });
+      continue;
+    }
+
+    if (msg.type === "tasks/get") {
+      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
+      const found = tasks.get(taskId);
+      if (!found) {
+        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        continue;
+      }
+      await writeMessage({ type: "tasks/getResult", task: found.task });
+      continue;
+    }
+
+    if (msg.type === "tasks/cancel") {
+      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
+      const found = tasks.get(taskId);
+      if (!found) {
+        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        continue;
+      }
+      found.cancelled = true;
+      found.task.status = "cancelled";
+      found.task.updatedAt = nowIso();
+      await writeMessage({ type: "tasks/cancelResult", ok: true });
+      continue;
+    }
+
+    if (msg.type === "tasks/subscribe") {
+      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
+      const found = tasks.get(taskId);
+      if (!found) {
+        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        continue;
+      }
+
+      const timestamp = nowIso();
+      if (found.task.status === "cancelled" || found.cancelled) {
+        await writeMessage({
+          type: "task.cancelled",
+          taskId,
+          timestamp,
+          task: found.task
+        });
+        continue;
+      }
+
+      found.turns += 1;
+      found.task.status = "running";
+      found.task.updatedAt = nowIso();
+      await writeMessage({ type: "task.started", taskId, timestamp: nowIso() });
+
+      const assistantContent = `MockTask response #${found.turns}: ${found.prompt || ""}`.trimEnd();
+      const deltas = chunkString(assistantContent, config.chunks);
+      const messageId = `msg-${taskId}-${found.turns}`;
+
+      for (let i = 0; i < deltas.length; i++) {
+        if (found.task.status === "cancelled" || found.cancelled) {
+          await writeMessage({
+            type: "task.cancelled",
+            taskId,
+            timestamp: nowIso(),
+            task: found.task
+          });
+          break;
+        }
+        await writeMessage({
+          type: "message.delta",
+          taskId,
+          timestamp: nowIso(),
+          messageId,
+          index: i,
+          delta: deltas[i]
+        });
+        await Promise.resolve();
+      }
+
+      if (found.task.status === "cancelled" || found.cancelled) continue;
+
+      found.task.status = "completed";
+      found.task.updatedAt = nowIso();
+      await writeMessage({
+        type: "task.completed",
+        taskId,
+        timestamp: nowIso(),
+        task: found.task
+      });
+      continue;
+    }
 
     if (msg.type === "session/start") {
       const requested = typeof msg.sessionId === "string" ? msg.sessionId : undefined;
