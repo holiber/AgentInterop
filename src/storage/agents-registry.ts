@@ -4,7 +4,7 @@ import path from "node:path";
 import type { AgentConfig } from "../agent-interop.js";
 
 export function agentsRegistryPath(cwd: string): string {
-  return path.join(cwd, ".cache", "agentinterop", "agents.json");
+  return path.join(cwd, ".cache", "agnet", "agents.json");
 }
 
 export async function readAgentsRegistry(cwd: string): Promise<{ version: 1; agents: AgentConfig[] }> {

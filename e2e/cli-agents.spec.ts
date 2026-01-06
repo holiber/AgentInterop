@@ -7,7 +7,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 type RunResult = { code: number; stdout: string; stderr: string };
 
 function runCli(args: string[], opts?: { cwd?: string; env?: NodeJS.ProcessEnv }): Promise<RunResult> {
-  const cliPath = path.join(process.cwd(), "bin", "agentinterop.mjs");
+  const cliPath = path.join(process.cwd(), "bin", "agnet.mjs");
 
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [cliPath, ...args], {
@@ -93,7 +93,7 @@ test("agents invoke errors on unknown skill", async () => {
 });
 
 test("agents register supports inline JSON and persists per-cwd", async () => {
-  const cwd = await mkdtemp(path.join(os.tmpdir(), "agentinterop-e2e-"));
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "agnet-e2e-"));
   const mockAgentPath = path.join(process.cwd(), "bin", "mock-agent.mjs");
 
   const config = {
@@ -145,7 +145,7 @@ test("agents register supports inline JSON and persists per-cwd", async () => {
 });
 
 test("agents register supports --file", async () => {
-  const cwd = await mkdtemp(path.join(os.tmpdir(), "agentinterop-e2e-"));
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "agnet-e2e-"));
   const mockAgentPath = path.join(process.cwd(), "bin", "mock-agent.mjs");
 
   const configPath = path.join(cwd, "agent.json");
@@ -164,7 +164,7 @@ test("agents register supports --file", async () => {
 });
 
 test("agents register supports --files with multiple .agent.mdx files", async () => {
-  const cwd = await mkdtemp(path.join(os.tmpdir(), "agentinterop-e2e-"));
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "agnet-e2e-"));
   const mockAgentPath = path.join(process.cwd(), "bin", "mock-agent.mjs");
 
   const aPath = path.join(cwd, "a.agent.mdx");

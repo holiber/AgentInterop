@@ -19,10 +19,10 @@ function endpointPathTokens(endpointId: string): string[] {
 
 function usage(endpoints: ApiEndpointMeta[]): string {
   const lines: string[] = [];
-  lines.push("AgentInterop CLI", "");
+  lines.push("Agnet CLI", "");
   lines.push("Usage:");
   for (const ep of endpoints) {
-    const path = ["agentinterop", ...endpointPathTokens(ep.id)].join(" ");
+    const path = ["agnet", ...endpointPathTokens(ep.id)].join(" ");
     const args = ep.args
       .map((a) => {
         const flag = a.cli?.flag;

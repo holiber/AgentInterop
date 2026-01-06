@@ -1,8 +1,17 @@
 {
-  "name": "agentinterop",
+  "name": "agnet",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "description": "A network for your AI agents",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holiber/Agnet"
+  },
+  "bugs": {
+    "url": "https://github.com/holiber/Agnet/issues"
+  },
+  "homepage": "https://github.com/holiber/Agnet#readme",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +23,7 @@
     }
   },
   "bin": {
-    "agentinterop": "./bin/agentinterop.mjs",
+    "agnet": "./bin/agnet.mjs",
     "mock-agent": "./bin/mock-agent.mjs"
   },
   "files": [

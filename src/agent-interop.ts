@@ -332,7 +332,7 @@ export interface RegisteredAgentRef {
   getAuthHeaders: () => Record<string, string>;
 }
 
-export class AgentInterop {
+export class Agnet {
   private readonly byId = new Map<string, RegisteredAgentRef>();
 
   register(input: AgentRegistrationInput, opts: RegisterOptions = {}): RegisteredAgentRef {

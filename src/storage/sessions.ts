@@ -12,7 +12,7 @@ export interface PersistedSessionV1 {
 }
 
 export function sessionsDir(cwd: string): string {
-  return path.join(cwd, ".cache", "agentinterop", "sessions");
+  return path.join(cwd, ".cache", "agnet", "sessions");
 }
 
 export function sessionPath(cwd: string, sessionId: string): string {

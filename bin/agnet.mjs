@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * agentinterop
+ * agnet
  *
  * Thin CLI entrypoint that delegates to the generated dispatcher.
  */

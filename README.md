@@ -1,5 +1,9 @@
-# AgentInterop
-An Network for your AI agents
+<p align="center">
+  <img alt="Agnet logo" src="media/agnet-logo.png" />
+</p>
+
+# Agnet
+A network for your AI agents
 
 ## CLI (local)
 
@@ -7,17 +11,17 @@ This repo ships a small CLI that can talk to local stdio agents.
 
 ```bash
 # List built-in demo agents
-agentinterop agents list
+agnet agents list
 
 # Describe an agent (skills/capabilities)
-agentinterop agents describe mock-agent
+agnet agents describe mock-agent
 
 # One-shot invocation
-agentinterop agents invoke --agent mock-agent --skill chat --prompt "hello"
+agnet agents invoke --agent mock-agent --skill chat --prompt "hello"
 
-# Session lifecycle (state persisted in ./.cache/agentinterop/sessions)
-SESSION_ID="$(agentinterop agents session open --agent mock-agent)"
-agentinterop agents session send --session "$SESSION_ID" --prompt "hello"
-agentinterop agents session send --session "$SESSION_ID" --prompt "world"
-agentinterop agents session close --session "$SESSION_ID"
+# Session lifecycle (state persisted in ./.cache/agnet/sessions)
+SESSION_ID="$(agnet agents session open --agent mock-agent)"
+agnet agents session send --session "$SESSION_ID" --prompt "hello"
+agnet agents session send --session "$SESSION_ID" --prompt "world"
+agnet agents session close --session "$SESSION_ID"
 ```

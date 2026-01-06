@@ -8,7 +8,7 @@ describe("helloWorld", () => {
   });
 
   it("greets a provided name", () => {
-    expect(helloWorld("AgentInterop")).toBe("Hello, AgentInterop!");
+    expect(helloWorld("Agnet")).toBe("Hello, Agnet!");
   });
 
   it("trims whitespace", () => {

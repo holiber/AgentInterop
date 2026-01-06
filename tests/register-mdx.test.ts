@@ -3,11 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { mkdtemp, writeFile } from "node:fs/promises";
 
-import { AgentInterop } from "../src/agent-interop.js";
+import { Agnet } from "../src/agent-interop.js";
 
-describe("AgentInterop.register (.agent.mdx)", () => {
+describe("Agnet.register (.agent.mdx)", () => {
   it("registers from a .agent.mdx file path", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "agentinterop-mdx-"));
+    const dir = await mkdtemp(path.join(os.tmpdir(), "agnet-mdx-"));
     const mdxPath = path.join(dir, "a.agent.mdx");
 
     await writeFile(
@@ -37,7 +37,7 @@ Talk.
       "utf-8"
     );
 
-    const ai = new AgentInterop();
+    const ai = new Agnet();
     const ref = ai.register(mdxPath);
     expect(ref.id).toBe("mdx-a");
     expect(ref.runtime?.transport).toBe("http");

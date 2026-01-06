@@ -11,7 +11,7 @@ export interface ChatMessage {
 /**
  * === A2A-aligned core entities (Tier1) ===
  *
- * AgentInterop aims to use the A2A (Agent2Agent) standard as the canonical internal model.
+ * Agnet aims to use the A2A (Agent2Agent) standard as the canonical internal model.
  * These types are transport-agnostic and JSON-serializable (suitable for CLI/IPC/HTTP/WS).
  *
  * Notes:

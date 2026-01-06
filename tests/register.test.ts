@@ -3,11 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { mkdtemp, writeFile } from "node:fs/promises";
 
-import { AgentInterop, resolveAuthHeaders } from "../src/agent-interop.js";
+import { Agnet, resolveAuthHeaders } from "../src/agent-interop.js";
 
-describe("AgentInterop.register", () => {
+describe("Agnet.register", () => {
   it("registers from a parsed config object", () => {
-    const ai = new AgentInterop();
+    const ai = new Agnet();
     const ref = ai.register({
       agent: {
         id: "a1",
@@ -22,7 +22,7 @@ describe("AgentInterop.register", () => {
   });
 
   it("registers from { card, adapter }", () => {
-    const ai = new AgentInterop();
+    const ai = new Agnet();
     const ref = ai.register({
       card: { id: "adapter-agent", name: "Adapter Agent", version: "1.0.0", skills: [{ id: "chat" }] },
       adapter: { kind: "unit-test" }
@@ -32,7 +32,7 @@ describe("AgentInterop.register", () => {
   });
 
   it("registers from a JSON file path string", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "agentinterop-test-"));
+    const dir = await mkdtemp(path.join(os.tmpdir(), "agnet-test-"));
     const jsonPath = path.join(dir, "agent.json");
     await writeFile(
       jsonPath,
@@ -43,14 +43,14 @@ describe("AgentInterop.register", () => {
       "utf-8"
     );
 
-    const ai = new AgentInterop();
+    const ai = new Agnet();
     const ref = ai.register(jsonPath);
     expect(ref.id).toBe("from-file");
     expect(ref.runtime?.transport).toBe("http");
   });
 
   it("throws a clear field-path error on invalid config", () => {
-    const ai = new AgentInterop();
+    const ai = new Agnet();
     expect(() =>
       ai.register({
         agent: { name: "x", version: "1.0.0", skills: [{ id: "chat" }] },
