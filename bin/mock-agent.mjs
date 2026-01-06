@@ -77,11 +77,27 @@ class FrameDecoder {
 function parseArgs(argv) {
   const out = {
     chunks: 5,
-    emitToolCalls: false
+    emitToolCalls: false,
+    streaming: true
   };
+
+  // Optional env override for tests/CI:
+  // - "1" | "true" | "on"  => streaming enabled
+  // - "0" | "false" | "off" => streaming disabled
+  const envStreaming = process.env.AGENTINTEROP_STREAMING;
+  if (typeof envStreaming === "string" && envStreaming.trim().length > 0) {
+    const v = envStreaming.trim().toLowerCase();
+    if (v === "1" || v === "true" || v === "on") out.streaming = true;
+    else if (v === "0" || v === "false" || v === "off") out.streaming = false;
+  }
 
   for (const arg of argv.slice(2)) {
     if (arg === "--emitToolCalls") out.emitToolCalls = true;
+    if (arg.startsWith("--streaming=")) {
+      const v = arg.slice("--streaming=".length).trim().toLowerCase();
+      if (v === "on") out.streaming = true;
+      if (v === "off") out.streaming = false;
+    }
     if (arg.startsWith("--chunks=")) {
       const n = Number(arg.slice("--chunks=".length));
       if (Number.isFinite(n) && n >= 1) out.chunks = Math.floor(n);
@@ -170,7 +186,10 @@ async function handleChunk(chunk) {
       const assistantContent = `MockAgent response #${session.turns}: ${content}`;
       const deltas = chunkString(assistantContent, config.chunks);
 
-      if (config.emitToolCalls) {
+      // Deterministic mode toggle:
+      // - streaming enabled: emits session/stream deltas, then session/complete
+      // - streaming disabled: emits only one session/complete (no deltas, no tool calls)
+      if (config.streaming && config.emitToolCalls) {
         await writeMessage({
           type: "tool/call",
           sessionId,
@@ -179,15 +198,17 @@ async function handleChunk(chunk) {
         });
       }
 
-      for (let i = 0; i < deltas.length; i++) {
-        await writeMessage({
-          type: "session/stream",
-          sessionId,
-          index: i,
-          delta: deltas[i]
-        });
-        // Deterministic async boundary without timers.
-        await Promise.resolve();
+      if (config.streaming) {
+        for (let i = 0; i < deltas.length; i++) {
+          await writeMessage({
+            type: "session/stream",
+            sessionId,
+            index: i,
+            delta: deltas[i]
+          });
+          // Deterministic async boundary without timers.
+          await Promise.resolve();
+        }
       }
 
       const assistantMessage = { role: "assistant", content: assistantContent };

@@ -41,11 +41,11 @@ async function waitForType<T extends AgentToClientMessage["type"]>(
 }
 
 describe("local runtime + mock-agent integration", () => {
-  it("streams deterministically and preserves session history", async () => {
+  it("streaming=on: emits deltas and preserves session history", async () => {
     const mockAgentPath = fileURLToPath(new URL("../bin/mock-agent.mjs", import.meta.url));
     const conn = spawnLocalAgent({
       command: process.execPath,
-      args: [mockAgentPath, "--chunks=4"]
+      args: [mockAgentPath, "--chunks=4", "--streaming=on"]
     });
 
     try {
@@ -100,11 +100,47 @@ describe("local runtime + mock-agent integration", () => {
     }
   });
 
+  it("streaming=off: emits only one completion event (no deltas)", async () => {
+    const mockAgentPath = fileURLToPath(new URL("../bin/mock-agent.mjs", import.meta.url));
+    const conn = spawnLocalAgent({
+      command: process.execPath,
+      args: [mockAgentPath, "--chunks=4", "--streaming=off"]
+    });
+
+    try {
+      const iter = conn.transport[Symbol.asyncIterator]();
+
+      await waitForType(iter, "ready");
+
+      await conn.transport.send({ type: "session/start", sessionId: "s-off" });
+      await waitForType(iter, "session/started");
+
+      await conn.transport.send({ type: "session/send", sessionId: "s-off", content: "hello" });
+
+      let sawStream = false;
+      let complete: SessionCompleteMessage | undefined;
+      while (!complete) {
+        const msg = await nextMessage(iter, "completion for streaming=off");
+        if (msg.type === "session/stream") sawStream = true;
+        if (msg.type === "session/complete") complete = msg;
+      }
+
+      expect(sawStream).toBe(false);
+      expect(complete.message.content).toBe("MockAgent response #1: hello");
+      expect(complete.history).toEqual([
+        { role: "user", content: "hello" },
+        { role: "assistant", content: "MockAgent response #1: hello" }
+      ]);
+    } finally {
+      await conn.close();
+    }
+  });
+
   it("can emit tool-call placeholder events", async () => {
     const mockAgentPath = fileURLToPath(new URL("../bin/mock-agent.mjs", import.meta.url));
     const conn = spawnLocalAgent({
       command: process.execPath,
-      args: [mockAgentPath, "--chunks=2", "--emitToolCalls"]
+      args: [mockAgentPath, "--chunks=2", "--streaming=on", "--emitToolCalls"]
     });
 
     try {
