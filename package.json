@@ -22,6 +22,12 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^25.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }
-
