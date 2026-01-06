@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "profile": "default",
+  "endpoints": [
+    {
+      "id": "agents.describe",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "agentId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "cli": {
+            "flag": "--json"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.invoke",
+      "pattern": "serverStream",
+      "args": [
+        {
+          "name": "agentId",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--agent"
+          }
+        },
+        {
+          "name": "skill",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--skill"
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--prompt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.list",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "cli": {
+            "flag": "--json"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.register",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "files",
+          "type": "string[]",
+          "required": false,
+          "cli": {
+            "flag": "--files",
+            "repeatable": true
+          }
+        },
+        {
+          "name": "file",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--file"
+          }
+        },
+        {
+          "name": "json",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--json"
+          }
+        },
+        {
+          "name": "bearerEnv",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--bearer-env"
+          }
+        },
+        {
+          "name": "apiKeyEnv",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--api-key-env"
+          }
+        },
+        {
+          "name": "headerEnv",
+          "type": "string[]",
+          "required": false,
+          "cli": {
+            "flag": "--header-env",
+            "repeatable": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.session.close",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--session"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.session.open",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "agentId",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--agent"
+          }
+        },
+        {
+          "name": "skill",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--skill"
+          }
+        }
+      ]
+    },
+    {
+      "id": "agents.session.send",
+      "pattern": "serverStream",
+      "args": [
+        {
+          "name": "sessionId",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--session"
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--prompt"
+          }
+        }
+      ]
+    }
+  ]
+}

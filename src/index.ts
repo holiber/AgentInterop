@@ -5,6 +5,9 @@ export function helloWorld(name?: string): string {
 
 export { Api } from "./api/api.js";
 export * from "./api/registry.js";
+export * from "./api/snapshot.js";
+export * from "./api/api-host.js";
+export * from "./api/doc-renderer.js";
 
 export * from "./agent-interop.js";
 export * from "./agent-mdx.js";

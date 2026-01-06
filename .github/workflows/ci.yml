@@ -26,6 +26,9 @@ jobs:
       - name: Unit tests (vitest)
         run: npm test
 
+      - name: API docs (generate + verify clean)
+        run: npm run docs:api:check
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
