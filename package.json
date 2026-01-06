@@ -14,6 +14,7 @@
     }
   },
   "bin": {
+    "agentinterop": "./bin/agentinterop.mjs",
     "mock-agent": "./bin/mock-agent.mjs"
   },
   "files": [
