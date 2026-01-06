@@ -10,7 +10,8 @@ describe("A2A core entities (Tier1)", () => {
       id: "t1",
       agentId: "agent-1",
       status: "created",
-      createdAt: now
+      createdAt: now,
+      execution: { location: "local", durability: "ephemeral" }
     } satisfies Task;
 
     const parts = [{ kind: "text", text: "hello" }] satisfies Part[];
@@ -39,9 +40,9 @@ describe("A2A core entities (Tier1)", () => {
   it("exposes a discriminated TaskEvent / AgentEvent union", () => {
     const now = new Date().toISOString();
 
-    const e1 = { type: "task_started", taskId: "t1", timestamp: now } satisfies TaskEvent;
+    const e1 = { type: "task.started", taskId: "t1", timestamp: now } satisfies TaskEvent;
     const e2 = {
-      type: "message_delta",
+      type: "message.delta",
       taskId: "t1",
       timestamp: now,
       messageId: "m1",
@@ -49,18 +50,18 @@ describe("A2A core entities (Tier1)", () => {
       index: 0
     } satisfies TaskEvent;
     const e3 = {
-      type: "task_failed",
+      type: "task.failed",
       taskId: "t1",
       timestamp: now,
       error: "boom"
     } satisfies TaskEvent;
 
     const asAgentEvent: AgentEvent = e1;
-    expect(asAgentEvent.type).toBe("task_started");
+    expect(asAgentEvent.type).toBe("task.started");
 
     const all: TaskEvent[] = [e1, e2, e3];
     for (const e of all) {
-      if (e.type === "message_delta") {
+      if (e.type === "message.delta") {
         expectTypeOf(e.delta).toEqualTypeOf<string>();
         expect(e.delta.length).toBeGreaterThan(0);
       }

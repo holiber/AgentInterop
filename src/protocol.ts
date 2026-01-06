@@ -23,7 +23,40 @@ export interface ChatMessage {
 /** RFC3339/ISO-8601 timestamp string (e.g. `new Date().toISOString()`). */
 export type Timestamp = string;
 
-export type TaskStatus = "created" | "running" | "completed" | "failed" | "cancelled";
+export type TaskStatus = "created" | "running" | "completed" | "failed" | "cancelled" | "unknown";
+
+export type ExecutionLocation = "local" | "remote" | "unknown";
+export type Durability = "ephemeral" | "durable" | "unknown";
+
+/**
+ * Execution hints for UX and safety.
+ * Not part of A2A core, but compatible as an extension.
+ */
+export interface TaskExecution {
+  location: ExecutionLocation;
+  durability: Durability;
+  providerId?: string; // e.g. "cursor" | "openhands" | "local"
+  hint?: string; // optional human-readable warning/help text
+  _rawData?: unknown; // passthrough provider fields
+}
+
+export interface TaskRef {
+  id: string;
+  agentId: string; // logical agent type in AgentInterop
+  status: TaskStatus;
+
+  title?: string; // "chat name" or derived summary (optional)
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+
+  // Optional metadata commonly shown in UIs:
+  repo?: { url?: string; ref?: string };
+  pr?: { url?: string; number?: number };
+
+  execution: TaskExecution;
+
+  _rawData?: unknown; // provider payload passthrough
+}
 
 /**
  * Task is the main execution container.
@@ -32,14 +65,7 @@ export type TaskStatus = "created" | "running" | "completed" | "failed" | "cance
  * - `invoke()` => one Task
  * - `session`  => long-lived Task containing many Messages
  */
-export interface Task {
-  id: string;
-  agentId: string;
-  status: TaskStatus;
-  createdAt: Timestamp;
-  completedAt?: Timestamp;
-  sessionId?: string;
-}
+export type Task = TaskRef;
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
@@ -90,27 +116,28 @@ interface TaskEventBase {
  * Streaming & lifecycle events aligned with A2A semantics.
  *
  * Minimum Tier1 events:
- * - task_started
- * - message_delta (streaming text)
- * - message_completed
- * - artifact_created
- * - task_completed
- * - task_failed
+ * - task.started
+ * - message.delta (streaming text)
+ * - message.completed
+ * - artifact.created
+ * - task.completed
+ * - task.failed
  */
 export type TaskEvent =
-  | (TaskEventBase & { type: "task_started" })
+  | (TaskEventBase & { type: "task.started" })
   | (TaskEventBase & {
-      type: "message_delta";
+      type: "message.delta";
       messageId: string;
       /** Streaming delta for a text part. */
       delta: string;
       /** Optional index for ordering deltas when needed. */
       index?: number;
     })
-  | (TaskEventBase & { type: "message_completed"; message: Message })
-  | (TaskEventBase & { type: "artifact_created"; artifact: Artifact })
-  | (TaskEventBase & { type: "task_completed"; task: Task })
-  | (TaskEventBase & { type: "task_failed"; error: string });
+  | (TaskEventBase & { type: "message.completed"; message: Message })
+  | (TaskEventBase & { type: "artifact.created"; artifact: Artifact })
+  | (TaskEventBase & { type: "task.completed"; task: TaskRef })
+  | (TaskEventBase & { type: "task.cancelled"; task: TaskRef })
+  | (TaskEventBase & { type: "task.failed"; error: string });
 
 /**
  * AgentEvent is a unified event stream type.
@@ -161,12 +188,83 @@ export interface SessionCompleteMessage {
   history: ChatMessage[];
 }
 
-export type ClientToAgentMessage = SessionStartMessage | SessionSendMessage;
+export interface TasksCreateMessage {
+  type: "tasks/create";
+  taskId?: string;
+  agentId?: string;
+  title?: string;
+  prompt?: string;
+}
+
+export interface TasksCreatedMessage {
+  type: "tasks/created";
+  task: TaskRef;
+}
+
+export interface TasksListMessage {
+  type: "tasks/list";
+  providerId?: string;
+  status?: TaskStatus;
+  cursor?: string;
+  limit?: string;
+}
+
+export interface TasksListResultMessage {
+  type: "tasks/listResult";
+  tasks: TaskRef[];
+  nextCursor?: string;
+}
+
+export interface TasksGetMessage {
+  type: "tasks/get";
+  taskId: string;
+}
+
+export interface TasksGetResultMessage {
+  type: "tasks/getResult";
+  task: TaskRef;
+}
+
+export interface TasksCancelMessage {
+  type: "tasks/cancel";
+  taskId: string;
+}
+
+export interface TasksCancelResultMessage {
+  type: "tasks/cancelResult";
+  ok: true;
+}
+
+export interface TasksSubscribeMessage {
+  type: "tasks/subscribe";
+  taskId: string;
+}
+
+export interface TasksErrorMessage {
+  type: "tasks/error";
+  taskId?: string;
+  error: string;
+}
+
+export type ClientToAgentMessage =
+  | SessionStartMessage
+  | SessionSendMessage
+  | TasksCreateMessage
+  | TasksListMessage
+  | TasksGetMessage
+  | TasksCancelMessage
+  | TasksSubscribeMessage;
 
 export type AgentToClientMessage =
   | ReadyMessage
   | SessionStartedMessage
   | SessionStreamMessage
   | ToolCallPlaceholderMessage
-  | SessionCompleteMessage;
+  | SessionCompleteMessage
+  | TasksCreatedMessage
+  | TasksListResultMessage
+  | TasksGetResultMessage
+  | TasksCancelResultMessage
+  | TasksErrorMessage
+  | TaskEvent;
 
