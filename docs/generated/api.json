@@ -10,7 +10,10 @@
         {
           "name": "prompt",
           "type": "string",
-          "required": true
+          "required": true,
+          "cli": {
+            "positionalIndex": 0
+          }
         },
         {
           "name": "providerId",
@@ -31,7 +34,11 @@
           "type": "string",
           "required": true,
           "cli": {
-            "flag": "--chat"
+            "flag": "--chat",
+            "aliases": [
+              "--task",
+              "--session"
+            ]
           }
         }
       ]
@@ -59,7 +66,11 @@
           "type": "string",
           "required": true,
           "cli": {
-            "flag": "--chat"
+            "flag": "--chat",
+            "aliases": [
+              "--task",
+              "--session"
+            ]
           }
         },
         {
@@ -79,7 +90,10 @@
         {
           "name": "prompt",
           "type": "string",
-          "required": true
+          "required": true,
+          "cli": {
+            "positionalIndex": 0
+          }
         },
         {
           "name": "providerId",
@@ -98,7 +112,10 @@
         {
           "name": "providerId",
           "type": "string",
-          "required": true
+          "required": true,
+          "cli": {
+            "positionalIndex": 0
+          }
         },
         {
           "name": "json",

@@ -1,4 +1,4 @@
-import type { ApiSnapshot } from "./snapshot.js";
+import type { ApiSnapshot } from "./api-snapshot.js";
 
 function groupId(id: string): string {
   const dot = id.indexOf(".");
@@ -49,9 +49,7 @@ export function renderApiDocMarkdown(snapshot: ApiSnapshot): string {
         for (const a of ep.args) {
           const req = a.required ? "required" : "optional";
           const desc = a.description?.trim();
-          lines.push(
-            `- \`${a.name}\` (${a.type}, ${req})${desc ? ` — ${desc}` : ""}`
-          );
+          lines.push(`- \`${a.name}\` (${a.type}, ${req})${desc ? ` — ${desc}` : ""}`);
         }
         lines.push("");
       }

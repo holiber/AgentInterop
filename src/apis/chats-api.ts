@@ -1,6 +1,5 @@
 import process from "node:process";
 
-import { Api } from "../api/api.js";
 import type { ChatMessage } from "../protocol.js";
 import { spawnLocalAgent } from "../local-runtime.js";
 import { nextMessage, randomId, sendAndWaitComplete, waitForType } from "../runtime/chat-client.js";
@@ -17,9 +16,7 @@ export class ChatsApi {
     this.providers = new ProvidersApi(ctx);
   }
 
-  @Api.endpoint("chats.create")
   async create(
-    @Api.arg({ name: "providerId", type: "string", cli: { flag: "--provider" } })
     providerId?: string
   ): Promise<string> {
     const resolvedProviderId = await this.providers.resolveDefaultProviderId(providerId);
@@ -28,11 +25,8 @@ export class ChatsApi {
     return chatId;
   }
 
-  @Api.endpoint("chats.send", { pattern: "serverStream" })
   async *send(
-    @Api.arg({ name: "chatId", type: "string", required: true, cli: { flag: "--chat", aliases: ["--task", "--session"] } })
     chatId?: string,
-    @Api.arg({ name: "prompt", type: "string", required: true, cli: { flag: "--prompt" } })
     prompt?: string
   ): AsyncIterable<string> {
     const resolvedChatId = requireNonEmptyString(chatId, "chatId");
@@ -106,9 +100,7 @@ export class ChatsApi {
     }
   }
 
-  @Api.endpoint("chats.close")
   async close(
-    @Api.arg({ name: "chatId", type: "string", required: true, cli: { flag: "--chat", aliases: ["--task", "--session"] } })
     chatId?: string
   ): Promise<string> {
     const resolvedChatId = requireNonEmptyString(chatId, "chatId");

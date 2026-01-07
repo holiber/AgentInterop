@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 
-import { Api } from "../api/api.js";
 import type { AgentCard, AgentConfig, AgentRuntimeConfig } from "../providers.js";
 import { validateAgentConfig } from "../providers.js";
 import { parseAgentMdx } from "../agent-mdx.js";
@@ -95,9 +94,7 @@ export class ProvidersApi {
     throw new Error("No providers available");
   }
 
-  @Api.endpoint("providers.list")
   async list(
-    @Api.arg({ name: "json", type: "boolean", cli: { flag: "--json" } })
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     json?: boolean
   ): Promise<{ providers: Array<{ id: string; name: string; description?: string }> }> {
@@ -112,11 +109,8 @@ export class ProvidersApi {
     return { providers };
   }
 
-  @Api.endpoint("providers.describe")
   async describe(
-    @Api.arg({ name: "providerId", type: "string", required: true, cli: { positionalIndex: 0 } })
     providerId: string,
-    @Api.arg({ name: "json", type: "boolean", cli: { flag: "--json" } })
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     json?: boolean
   ): Promise<{ provider: AgentCard }> {
@@ -124,32 +118,17 @@ export class ProvidersApi {
     return { provider: registered.agent };
   }
 
-  @Api.endpoint("providers.register")
   async register(
-    @Api.arg({
-      name: "files",
-      type: "string[]",
-      cli: { flag: "--files", repeatable: true }
-    })
     files?: string[],
 
-    @Api.arg({
-      name: "file",
-      type: "string",
-      cli: { flag: "--file" }
-    })
     file?: string,
 
-    @Api.arg({ name: "json", type: "string", cli: { flag: "--json" } })
     inlineJson?: string,
 
-    @Api.arg({ name: "bearerEnv", type: "string", cli: { flag: "--bearer-env" } })
     bearerEnv?: string,
 
-    @Api.arg({ name: "apiKeyEnv", type: "string", cli: { flag: "--api-key-env" } })
     apiKeyEnv?: string,
 
-    @Api.arg({ name: "headerEnv", type: "string[]", cli: { flag: "--header-env", repeatable: true } })
     headerEnv?: string[]
   ): Promise<{ ok: true; providerId: string } | { ok: true; providerIds: string[] }> {
     const fileList = [...(files ?? [])];

@@ -1,4 +1,3 @@
-import { Api } from "../api/api.js";
 import type { ChatMessage } from "../protocol.js";
 import { requireNonEmptyString, stripTrailingNewlineOnce } from "../internal/utils.js";
 import { readChat } from "../storage/chats.js";
@@ -18,11 +17,8 @@ export class ShortcutsApi {
     this.chats = new ChatsApi(ctx);
   }
 
-  @Api.endpoint("ask")
   async ask(
-    @Api.arg({ name: "prompt", type: "string", required: true, cli: { positionalIndex: 0 } })
     prompt: string,
-    @Api.arg({ name: "providerId", type: "string", cli: { flag: "--provider" } })
     providerId?: string
   ): Promise<string> {
     const content = requireNonEmptyString(prompt, "prompt");
@@ -42,11 +38,8 @@ export class ShortcutsApi {
     }
   }
 
-  @Api.endpoint("prompt")
   async prompt(
-    @Api.arg({ name: "prompt", type: "string", required: true, cli: { positionalIndex: 0 } })
     prompt: string,
-    @Api.arg({ name: "providerId", type: "string", cli: { flag: "--provider" } })
     providerId?: string
   ): Promise<{ text: string; chatId: string; providerId: string; history: ChatMessage[] }> {
     const content = requireNonEmptyString(prompt, "prompt");
