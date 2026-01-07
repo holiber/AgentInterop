@@ -1,18 +1,8 @@
 import { Api } from "../api/api.js";
 import type { ChatMessage } from "../protocol.js";
+import { requireNonEmptyString, stripTrailingNewlineOnce } from "../internal/utils.js";
 import { readChat } from "../storage/chats.js";
 import { ChatsApi, type ChatsApiContext } from "./chats-api.js";
-
-function requireNonEmptyString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`Invalid ${label}: expected non-empty string`);
-  }
-  return value;
-}
-
-function stripTrailingNewlineOnce(text: string): string {
-  return text.endsWith("\n") ? text.slice(0, -1) : text;
-}
 
 /**
  * CLI-facing sugar APIs.

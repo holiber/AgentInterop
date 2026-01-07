@@ -8,12 +8,7 @@ import { getRegisteredEndpoints, resolveHandlerInstance } from "../api/registry.
 import { ChatsApi } from "../apis/chats-api.js";
 import { ProvidersApi } from "../apis/providers-api.js";
 import { ShortcutsApi } from "../apis/shortcuts-api.js";
-
-function toErrorMessage(err: unknown): string {
-  if (!err) return "Unknown error";
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
+import { toErrorMessage } from "../internal/utils.js";
 
 function endpointPathTokens(endpointId: string): string[] {
   return endpointId.split(".").filter(Boolean);

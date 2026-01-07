@@ -7,6 +7,7 @@ import { spawnLocalAgent } from "./local-runtime.js";
 import { randomId, sendAndWaitComplete, waitForType } from "./runtime/chat-client.js";
 import { readChat, writeChat } from "./storage/chats.js";
 import { readProvidersRegistrySync, writeProvidersRegistrySync } from "./storage/providers-registry.js";
+import { isMarkedDefaultAgentCard, stripTrailingNewlineOnce } from "./internal/utils.js";
 import type {
   AgentConfig,
   AgentRegistrationInput,
@@ -111,17 +112,6 @@ function coerceAgentRequest(input: TAgentRequest): { providerId?: string; prompt
   const providerIdRaw = (input as { providerId?: unknown }).providerId;
   const providerId = providerIdRaw === undefined ? undefined : isNonEmptyString(providerIdRaw) ? providerIdRaw : undefined;
   return { prompt, providerId };
-}
-
-function stripTrailingNewlineOnce(text: string): string {
-  return text.endsWith("\n") ? text.slice(0, -1) : text;
-}
-
-function isMarkedDefaultProvider(provider: ProviderRef): boolean {
-  const ext = provider.card.extensions as unknown;
-  if (!ext || typeof ext !== "object" || Array.isArray(ext)) return false;
-  const obj = ext as Record<string, unknown>;
-  return obj.default === true || obj.isDefault === true;
 }
 
 async function runTaskSend(params: {
@@ -460,7 +450,7 @@ export class Agnet {
     // Deterministic default:
     // 1) provider explicitly marked as default (if supported)
     // 2) otherwise — last registered provider
-    const defaults = all.filter(isMarkedDefaultProvider);
+    const defaults = all.filter((p) => isMarkedDefaultAgentCard(p.card));
     return defaults.length > 0 ? defaults[defaults.length - 1] : all[all.length - 1];
   }
 }
