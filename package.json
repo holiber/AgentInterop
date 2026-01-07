@@ -32,7 +32,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run",
+    "tests": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "lint": "tsc -p tsconfig.json --noEmit",
