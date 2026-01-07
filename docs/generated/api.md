@@ -4,33 +4,48 @@ Version: **1**
 
 ---
 
-## agents.*
+## chats.*
 
-### `agents.describe` (unary)
+### `chats.close` (unary)
 
 **Args**
-- `agentId` (string, required)
-- `json` (boolean, optional)
+- `chatId` (string, required)
 
 ---
 
-### `agents.invoke` (serverStream)
+### `chats.create` (unary)
 
 **Args**
-- `agentId` (string, optional)
-- `skill` (string, required)
+- `providerId` (string, optional)
+
+---
+
+### `chats.send` (serverStream)
+
+**Args**
+- `chatId` (string, required)
 - `prompt` (string, required)
 
 ---
 
-### `agents.list` (unary)
+## providers.*
+
+### `providers.describe` (unary)
+
+**Args**
+- `providerId` (string, required)
+- `json` (boolean, optional)
+
+---
+
+### `providers.list` (unary)
 
 **Args**
 - `json` (boolean, optional)
 
 ---
 
-### `agents.register` (unary)
+### `providers.register` (unary)
 
 **Args**
 - `files` (string[], optional)
@@ -39,29 +54,6 @@ Version: **1**
 - `bearerEnv` (string, optional)
 - `apiKeyEnv` (string, optional)
 - `headerEnv` (string[], optional)
-
----
-
-### `agents.task.close` (unary)
-
-**Args**
-- `taskId` (string, required)
-
----
-
-### `agents.task.open` (unary)
-
-**Args**
-- `agentId` (string, optional)
-- `skill` (string, optional)
-
----
-
-### `agents.task.send` (serverStream)
-
-**Args**
-- `taskId` (string, required)
-- `prompt` (string, required)
 
 ---
 

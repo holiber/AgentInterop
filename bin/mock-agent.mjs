@@ -148,9 +148,9 @@ const decoder = new FrameDecoder();
 const sessions = new Map(); // sessionId -> { history: Array<{role, content}>, turns: number }
 let sessionCounter = 0;
 
-const tasks = new Map(); // taskId -> { task, prompt, messageId, turns, cancelled }
-const taskOrder = []; // stable creation order
-let taskCounter = 0;
+const chats = new Map(); // chatId -> { chat, prompt, messageId, turns, cancelled }
+const chatOrder = []; // stable creation order
+let chatCounter = 0;
 
 function getOrCreateSession(sessionId) {
   const existing = sessions.get(sessionId);
@@ -164,22 +164,22 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function makeTaskRef({ taskId, agentId, title }) {
+function makeChatRef({ chatId, providerId, title }) {
   const ts = nowIso();
   return {
-    id: taskId,
-    agentId: agentId || "mock-agent",
+    id: chatId,
+    providerId: providerId || "mock-agent",
     status: "created",
-    title: title || `Mock Task ${taskId}`,
+    title: title || `Mock Chat ${chatId}`,
     createdAt: ts,
     updatedAt: ts,
     execution: {
       location: "local",
       durability: "ephemeral",
       providerId: "local",
-      hint: "This task runs locally and may stop if the process exits."
+      hint: "This chat runs locally and may stop if the process exits."
     },
-    _rawData: { mock: true, kind: "task" }
+    _rawData: { mock: true, kind: "chat" }
   };
 }
 
@@ -193,41 +193,41 @@ async function handleChunk(chunk) {
   for (const msg of messages) {
     if (!msg || typeof msg !== "object" || typeof msg.type !== "string") continue;
 
-    if (msg.type === "tasks/create") {
-      const requestedId = typeof msg.taskId === "string" ? msg.taskId : undefined;
-      const taskId = requestedId || `task-${++taskCounter}`;
-      const agentId = typeof msg.agentId === "string" ? msg.agentId : "mock-agent";
+    if (msg.type === "chats/create") {
+      const requestedId = typeof msg.chatId === "string" ? msg.chatId : undefined;
+      const chatId = requestedId || `chat-${++chatCounter}`;
+      const providerId = typeof msg.providerId === "string" ? msg.providerId : "mock-agent";
       const title = typeof msg.title === "string" ? msg.title : undefined;
       const prompt = typeof msg.prompt === "string" ? msg.prompt : "";
 
-      if (!tasks.has(taskId)) {
-        const task = makeTaskRef({ taskId, agentId, title });
-        tasks.set(taskId, {
-          task,
+      if (!chats.has(chatId)) {
+        const chat = makeChatRef({ chatId, providerId, title });
+        chats.set(chatId, {
+          chat,
           prompt,
           turns: 0,
           cancelled: false,
-          messageId: `msg-${taskId}-1`
+          messageId: `msg-${chatId}-1`
         });
-        taskOrder.push(taskId);
+        chatOrder.push(chatId);
       } else {
-        const existing = tasks.get(taskId);
+        const existing = chats.get(chatId);
         if (existing && typeof prompt === "string" && prompt.length > 0) existing.prompt = prompt;
       }
 
-      await writeMessage({ type: "tasks/created", task: tasks.get(taskId).task });
+      await writeMessage({ type: "chats/created", chat: chats.get(chatId).chat });
       continue;
     }
 
-    if (msg.type === "tasks/list") {
+    if (msg.type === "chats/list") {
       const providerId = typeof msg.providerId === "string" ? msg.providerId : undefined;
       const status = typeof msg.status === "string" ? msg.status : undefined;
       const cursorRaw = typeof msg.cursor === "string" ? msg.cursor : undefined;
       const limitRaw = typeof msg.limit === "string" ? msg.limit : undefined;
 
-      // This mock agent only supports local tasks.
+      // This mock agent only supports local chats.
       if (providerId && providerId !== "local") {
-        await writeMessage({ type: "tasks/listResult", tasks: [], nextCursor: undefined });
+        await writeMessage({ type: "chats/listResult", chats: [], nextCursor: undefined });
         continue;
       }
 
@@ -243,84 +243,84 @@ async function handleChunk(chunk) {
         if (Number.isFinite(n) && n >= 1) limit = Math.floor(n);
       }
 
-      const all = taskOrder
-        .map((id) => tasks.get(id))
+      const all = chatOrder
+        .map((id) => chats.get(id))
         .filter(Boolean)
-        .map((t) => t.task);
+        .map((t) => t.chat);
 
       const filtered = status ? all.filter((t) => t.status === status) : all;
       const page = filtered.slice(offset, offset + limit);
       const nextCursor = offset + limit < filtered.length ? String(offset + limit) : undefined;
-      await writeMessage({ type: "tasks/listResult", tasks: page, nextCursor });
+      await writeMessage({ type: "chats/listResult", chats: page, nextCursor });
       continue;
     }
 
-    if (msg.type === "tasks/get") {
-      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
-      const found = tasks.get(taskId);
+    if (msg.type === "chats/get") {
+      const chatId = typeof msg.chatId === "string" ? msg.chatId : "";
+      const found = chats.get(chatId);
       if (!found) {
-        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        await writeMessage({ type: "chats/error", chatId, error: `Unknown chat: ${chatId}` });
         continue;
       }
-      await writeMessage({ type: "tasks/getResult", task: found.task });
+      await writeMessage({ type: "chats/getResult", chat: found.chat });
       continue;
     }
 
-    if (msg.type === "tasks/cancel") {
-      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
-      const found = tasks.get(taskId);
+    if (msg.type === "chats/cancel") {
+      const chatId = typeof msg.chatId === "string" ? msg.chatId : "";
+      const found = chats.get(chatId);
       if (!found) {
-        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        await writeMessage({ type: "chats/error", chatId, error: `Unknown chat: ${chatId}` });
         continue;
       }
       found.cancelled = true;
-      found.task.status = "cancelled";
-      found.task.updatedAt = nowIso();
-      await writeMessage({ type: "tasks/cancelResult", ok: true });
+      found.chat.status = "cancelled";
+      found.chat.updatedAt = nowIso();
+      await writeMessage({ type: "chats/cancelResult", ok: true });
       continue;
     }
 
-    if (msg.type === "tasks/subscribe") {
-      const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
-      const found = tasks.get(taskId);
+    if (msg.type === "chats/subscribe") {
+      const chatId = typeof msg.chatId === "string" ? msg.chatId : "";
+      const found = chats.get(chatId);
       if (!found) {
-        await writeMessage({ type: "tasks/error", taskId, error: `Unknown task: ${taskId}` });
+        await writeMessage({ type: "chats/error", chatId, error: `Unknown chat: ${chatId}` });
         continue;
       }
 
       const timestamp = nowIso();
-      if (found.task.status === "cancelled" || found.cancelled) {
+      if (found.chat.status === "cancelled" || found.cancelled) {
         await writeMessage({
-          type: "task.cancelled",
-          taskId,
+          type: "chat.cancelled",
+          chatId,
           timestamp,
-          task: found.task
+          chat: found.chat
         });
         continue;
       }
 
       found.turns += 1;
-      found.task.status = "running";
-      found.task.updatedAt = nowIso();
-      await writeMessage({ type: "task.started", taskId, timestamp: nowIso() });
+      found.chat.status = "running";
+      found.chat.updatedAt = nowIso();
+      await writeMessage({ type: "chat.started", chatId, timestamp: nowIso() });
 
       const assistantContent = `MockTask response #${found.turns}: ${found.prompt || ""}`.trimEnd();
       const deltas = chunkString(assistantContent, config.chunks);
-      const messageId = `msg-${taskId}-${found.turns}`;
+      const messageId = `msg-${chatId}-${found.turns}`;
 
       for (let i = 0; i < deltas.length; i++) {
-        if (found.task.status === "cancelled" || found.cancelled) {
+        if (found.chat.status === "cancelled" || found.cancelled) {
           await writeMessage({
-            type: "task.cancelled",
-            taskId,
+            type: "chat.cancelled",
+            chatId,
             timestamp: nowIso(),
-            task: found.task
+            chat: found.chat
           });
           break;
         }
         await writeMessage({
           type: "message.delta",
-          taskId,
+          chatId,
           timestamp: nowIso(),
           messageId,
           index: i,
@@ -329,15 +329,15 @@ async function handleChunk(chunk) {
         await Promise.resolve();
       }
 
-      if (found.task.status === "cancelled" || found.cancelled) continue;
+      if (found.chat.status === "cancelled" || found.cancelled) continue;
 
-      found.task.status = "completed";
-      found.task.updatedAt = nowIso();
+      found.chat.status = "completed";
+      found.chat.updatedAt = nowIso();
       await writeMessage({
-        type: "task.completed",
-        taskId,
+        type: "chat.completed",
+        chatId,
         timestamp: nowIso(),
-        task: found.task
+        chat: found.chat
       });
       continue;
     }

@@ -4,11 +4,61 @@
   "profile": "default",
   "endpoints": [
     {
-      "id": "agents.describe",
+      "id": "chats.close",
       "pattern": "unary",
       "args": [
         {
-          "name": "agentId",
+          "name": "chatId",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--chat"
+          }
+        }
+      ]
+    },
+    {
+      "id": "chats.create",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "providerId",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--provider"
+          }
+        }
+      ]
+    },
+    {
+      "id": "chats.send",
+      "pattern": "serverStream",
+      "args": [
+        {
+          "name": "chatId",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--chat"
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "cli": {
+            "flag": "--prompt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "providers.describe",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "providerId",
           "type": "string",
           "required": true
         },
@@ -23,37 +73,7 @@
       ]
     },
     {
-      "id": "agents.invoke",
-      "pattern": "serverStream",
-      "args": [
-        {
-          "name": "agentId",
-          "type": "string",
-          "required": false,
-          "cli": {
-            "flag": "--agent"
-          }
-        },
-        {
-          "name": "skill",
-          "type": "string",
-          "required": true,
-          "cli": {
-            "flag": "--skill"
-          }
-        },
-        {
-          "name": "prompt",
-          "type": "string",
-          "required": true,
-          "cli": {
-            "flag": "--prompt"
-          }
-        }
-      ]
-    },
-    {
-      "id": "agents.list",
+      "id": "providers.list",
       "pattern": "unary",
       "args": [
         {
@@ -67,7 +87,7 @@
       ]
     },
     {
-      "id": "agents.register",
+      "id": "providers.register",
       "pattern": "unary",
       "args": [
         {
@@ -118,64 +138,6 @@
           "cli": {
             "flag": "--header-env",
             "repeatable": true
-          }
-        }
-      ]
-    },
-    {
-      "id": "agents.task.close",
-      "pattern": "unary",
-      "args": [
-        {
-          "name": "taskId",
-          "type": "string",
-          "required": true,
-          "cli": {
-            "flag": "--task"
-          }
-        }
-      ]
-    },
-    {
-      "id": "agents.task.open",
-      "pattern": "unary",
-      "args": [
-        {
-          "name": "agentId",
-          "type": "string",
-          "required": false,
-          "cli": {
-            "flag": "--agent"
-          }
-        },
-        {
-          "name": "skill",
-          "type": "string",
-          "required": false,
-          "cli": {
-            "flag": "--skill"
-          }
-        }
-      ]
-    },
-    {
-      "id": "agents.task.send",
-      "pattern": "serverStream",
-      "args": [
-        {
-          "name": "taskId",
-          "type": "string",
-          "required": true,
-          "cli": {
-            "flag": "--task"
-          }
-        },
-        {
-          "name": "prompt",
-          "type": "string",
-          "required": true,
-          "cli": {
-            "flag": "--prompt"
           }
         }
       ]

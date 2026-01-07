@@ -17,7 +17,7 @@ export interface ApiSnapshot {
    */
   profile: string;
   endpoints: Array<{
-    id: string; // e.g. "tasks.list"
+    id: string; // e.g. "chats.send"
     pattern: ApiSnapshotPattern;
     summary?: string;
     description?: string;

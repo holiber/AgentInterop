@@ -21,7 +21,7 @@ export interface ApiCliArgOptions {
   aliases?: Array<`--${string}`>;
   /**
    * Positional index in the argv tail after the command path.
-   * For example, `agnet agents describe <agentId>` => positionalIndex: 0.
+   * For example, `agnet providers describe <providerId>` => positionalIndex: 0.
    */
   positionalIndex?: number;
 }

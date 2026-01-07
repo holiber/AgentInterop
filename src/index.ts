@@ -10,6 +10,7 @@ export * from "./api/api-host.js";
 export * from "./api/doc-renderer.js";
 
 export * from "./agnet.js";
+export * from "./providers.js";
 export * from "./agent-mdx.js";
 export * from "./local-runtime.js";
 export * from "./protocol.js";

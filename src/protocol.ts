@@ -23,7 +23,7 @@ export interface ChatMessage {
 /** RFC3339/ISO-8601 timestamp string (e.g. `new Date().toISOString()`). */
 export type Timestamp = string;
 
-export type TaskStatus = "created" | "running" | "completed" | "failed" | "cancelled" | "unknown";
+export type ChatStatus = "created" | "running" | "completed" | "failed" | "cancelled" | "unknown";
 
 export type ExecutionLocation = "local" | "remote" | "unknown";
 export type Durability = "ephemeral" | "durable" | "unknown";
@@ -32,7 +32,7 @@ export type Durability = "ephemeral" | "durable" | "unknown";
  * Execution hints for UX and safety.
  * Not part of A2A core, but compatible as an extension.
  */
-export interface TaskExecution {
+export interface ChatExecution {
   location: ExecutionLocation;
   durability: Durability;
   providerId?: string; // e.g. "cursor" | "openhands" | "local"
@@ -40,10 +40,10 @@ export interface TaskExecution {
   _rawData?: unknown; // passthrough provider fields
 }
 
-export interface TaskRef {
+export interface ChatRef {
   id: string;
-  agentId: string; // logical agent type in AgentInterop
-  status: TaskStatus;
+  providerId: string;
+  status: ChatStatus;
 
   title?: string; // "chat name" or derived summary (optional)
   createdAt?: Timestamp;
@@ -53,29 +53,22 @@ export interface TaskRef {
   repo?: { url?: string; ref?: string };
   pr?: { url?: string; number?: number };
 
-  execution: TaskExecution;
+  execution: ChatExecution;
 
   _rawData?: unknown; // provider payload passthrough
 }
 
-/**
- * Task is the main execution container.
- *
- * Tier1 usage:
- * - `agents.invoke` => ephemeral execution (streams text)
- * - `agents.task.*` => durable local Task with persisted message history
- */
-export type Task = TaskRef;
+// ChatRef is the main Tier1 interaction container (chat-first).
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
 /**
- * Message is a unit of interaction inside a Task.
- * Messages form a task history and are the basis for future trajectories.
+ * Message is a unit of interaction inside a Chat.
+ * Messages form a chat history and are the basis for future trajectories.
  */
 export interface Message {
   id: string;
-  taskId: string;
+  chatId: string;
   role: MessageRole;
   parts: Part[];
   timestamp: Timestamp;
@@ -94,21 +87,21 @@ export type JsonPart = { kind: "json"; value: unknown }; // placeholder for stru
 export type Part = TextPart | JsonPart;
 
 /**
- * Artifact is a produced result associated with a Task (not a Message).
+ * Artifact is a produced result associated with a Chat (not a Message).
  *
  * - `type` is a MIME-like string (e.g. "text/plain", "application/json", "image/png").
  * - `metadata` is optional, JSON-serializable extra data.
  */
 export interface Artifact {
   id: string;
-  taskId: string;
+  chatId: string;
   type: string;
   parts: Part[];
   metadata?: JsonObject;
 }
 
-interface TaskEventBase {
-  taskId: string;
+interface ChatEventBase {
+  chatId: string;
   timestamp: Timestamp;
 }
 
@@ -116,16 +109,16 @@ interface TaskEventBase {
  * Streaming & lifecycle events aligned with A2A semantics.
  *
  * Minimum Tier1 events:
- * - task.started
+ * - chat.started
  * - message.delta (streaming text)
  * - message.completed
  * - artifact.created
- * - task.completed
- * - task.failed
+ * - chat.completed
+ * - chat.failed
  */
-export type TaskEvent =
-  | (TaskEventBase & { type: "task.started" })
-  | (TaskEventBase & {
+export type ChatEvent =
+  | (ChatEventBase & { type: "chat.started" })
+  | (ChatEventBase & {
       type: "message.delta";
       messageId: string;
       /** Streaming delta for a text part. */
@@ -133,17 +126,17 @@ export type TaskEvent =
       /** Optional index for ordering deltas when needed. */
       index?: number;
     })
-  | (TaskEventBase & { type: "message.completed"; message: Message })
-  | (TaskEventBase & { type: "artifact.created"; artifact: Artifact })
-  | (TaskEventBase & { type: "task.completed"; task: TaskRef })
-  | (TaskEventBase & { type: "task.cancelled"; task: TaskRef })
-  | (TaskEventBase & { type: "task.failed"; error: string });
+  | (ChatEventBase & { type: "message.completed"; message: Message })
+  | (ChatEventBase & { type: "artifact.created"; artifact: Artifact })
+  | (ChatEventBase & { type: "chat.completed"; chat: ChatRef })
+  | (ChatEventBase & { type: "chat.cancelled"; chat: ChatRef })
+  | (ChatEventBase & { type: "chat.failed"; error: string });
 
 /**
  * AgentEvent is a unified event stream type.
- * For Tier1 it's equivalent to TaskEvent, but may expand in future tiers.
+ * For Tier1 it's equivalent to ChatEvent, but may expand in future tiers.
  */
-export type AgentEvent = TaskEvent;
+export type AgentEvent = ChatEvent;
 
 export interface ReadyMessage {
   type: "ready";
@@ -199,72 +192,72 @@ export interface SessionCompleteMessage {
   history: ChatMessage[];
 }
 
-export interface TasksCreateMessage {
-  type: "tasks/create";
-  taskId?: string;
-  agentId?: string;
+export interface ChatsCreateMessage {
+  type: "chats/create";
+  chatId?: string;
+  providerId?: string;
   title?: string;
   prompt?: string;
 }
 
-export interface TasksCreatedMessage {
-  type: "tasks/created";
-  task: TaskRef;
+export interface ChatsCreatedMessage {
+  type: "chats/created";
+  chat: ChatRef;
 }
 
-export interface TasksListMessage {
-  type: "tasks/list";
+export interface ChatsListMessage {
+  type: "chats/list";
   providerId?: string;
-  status?: TaskStatus;
+  status?: ChatStatus;
   cursor?: string;
   limit?: string;
 }
 
-export interface TasksListResultMessage {
-  type: "tasks/listResult";
-  tasks: TaskRef[];
+export interface ChatsListResultMessage {
+  type: "chats/listResult";
+  chats: ChatRef[];
   nextCursor?: string;
 }
 
-export interface TasksGetMessage {
-  type: "tasks/get";
-  taskId: string;
+export interface ChatsGetMessage {
+  type: "chats/get";
+  chatId: string;
 }
 
-export interface TasksGetResultMessage {
-  type: "tasks/getResult";
-  task: TaskRef;
+export interface ChatsGetResultMessage {
+  type: "chats/getResult";
+  chat: ChatRef;
 }
 
-export interface TasksCancelMessage {
-  type: "tasks/cancel";
-  taskId: string;
+export interface ChatsCancelMessage {
+  type: "chats/cancel";
+  chatId: string;
 }
 
-export interface TasksCancelResultMessage {
-  type: "tasks/cancelResult";
+export interface ChatsCancelResultMessage {
+  type: "chats/cancelResult";
   ok: true;
 }
 
-export interface TasksSubscribeMessage {
-  type: "tasks/subscribe";
-  taskId: string;
+export interface ChatsSubscribeMessage {
+  type: "chats/subscribe";
+  chatId: string;
 }
 
-export interface TasksErrorMessage {
-  type: "tasks/error";
-  taskId?: string;
+export interface ChatsErrorMessage {
+  type: "chats/error";
+  chatId?: string;
   error: string;
 }
 
 export type ClientToAgentMessage =
   | SessionStartMessage
   | SessionSendMessage
-  | TasksCreateMessage
-  | TasksListMessage
-  | TasksGetMessage
-  | TasksCancelMessage
-  | TasksSubscribeMessage;
+  | ChatsCreateMessage
+  | ChatsListMessage
+  | ChatsGetMessage
+  | ChatsCancelMessage
+  | ChatsSubscribeMessage;
 
 export type AgentToClientMessage =
   | ReadyMessage
@@ -272,10 +265,10 @@ export type AgentToClientMessage =
   | SessionStreamMessage
   | ToolCallPlaceholderMessage
   | SessionCompleteMessage
-  | TasksCreatedMessage
-  | TasksListResultMessage
-  | TasksGetResultMessage
-  | TasksCancelResultMessage
-  | TasksErrorMessage
-  | TaskEvent;
+  | ChatsCreatedMessage
+  | ChatsListResultMessage
+  | ChatsGetResultMessage
+  | ChatsCancelResultMessage
+  | ChatsErrorMessage
+  | ChatEvent;
 

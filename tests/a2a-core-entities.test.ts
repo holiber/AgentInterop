@@ -1,24 +1,24 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import type { AgentEvent, Artifact, Message, Part, Task, TaskEvent } from "../src/protocol.js";
+import type { AgentEvent, Artifact, ChatEvent, ChatRef, Message, Part } from "../src/protocol.js";
 
 describe("A2A core entities (Tier1)", () => {
-  it("can model Task -> Message -> Part and Artifact", () => {
+  it("can model Chat -> Message -> Part and Artifact", () => {
     const now = new Date().toISOString();
 
-    const task = {
-      id: "t1",
-      agentId: "agent-1",
+    const chat = {
+      id: "c1",
+      providerId: "provider-1",
       status: "created",
       createdAt: now,
       execution: { location: "local", durability: "ephemeral" }
-    } satisfies Task;
+    } satisfies ChatRef;
 
     const parts = [{ kind: "text", text: "hello" }] satisfies Part[];
 
     const msg = {
       id: "m1",
-      taskId: task.id,
+      chatId: chat.id,
       role: "user",
       parts,
       timestamp: now
@@ -26,40 +26,40 @@ describe("A2A core entities (Tier1)", () => {
 
     const artifact = {
       id: "a1",
-      taskId: task.id,
+      chatId: chat.id,
       type: "text/plain",
       parts: [{ kind: "text", text: "result" }]
     } satisfies Artifact;
 
-    expect(task.status).toBe("created");
-    expect(msg.taskId).toBe("t1");
+    expect(chat.status).toBe("created");
+    expect(msg.chatId).toBe("c1");
     expect(msg.parts[0]).toEqual({ kind: "text", text: "hello" });
     expect(artifact.type).toBe("text/plain");
   });
 
-  it("exposes a discriminated TaskEvent / AgentEvent union", () => {
+  it("exposes a discriminated ChatEvent / AgentEvent union", () => {
     const now = new Date().toISOString();
 
-    const e1 = { type: "task.started", taskId: "t1", timestamp: now } satisfies TaskEvent;
+    const e1 = { type: "chat.started", chatId: "c1", timestamp: now } satisfies ChatEvent;
     const e2 = {
       type: "message.delta",
-      taskId: "t1",
+      chatId: "c1",
       timestamp: now,
       messageId: "m1",
       delta: "hel",
       index: 0
-    } satisfies TaskEvent;
+    } satisfies ChatEvent;
     const e3 = {
-      type: "task.failed",
-      taskId: "t1",
+      type: "chat.failed",
+      chatId: "c1",
       timestamp: now,
       error: "boom"
-    } satisfies TaskEvent;
+    } satisfies ChatEvent;
 
     const asAgentEvent: AgentEvent = e1;
-    expect(asAgentEvent.type).toBe("task.started");
+    expect(asAgentEvent.type).toBe("chat.started");
 
-    const all: TaskEvent[] = [e1, e2, e3];
+    const all: ChatEvent[] = [e1, e2, e3];
     for (const e of all) {
       if (e.type === "message.delta") {
         expectTypeOf(e.delta).toEqualTypeOf<string>();

@@ -5,7 +5,8 @@ import process from "node:process";
 import { Api } from "../api/api.js";
 import type { ApiArgMeta, ApiEndpointMeta } from "../api/registry.js";
 import { getRegisteredEndpoints, resolveHandlerInstance } from "../api/registry.js";
-import { AgentsApi } from "../apis/agents-api.js";
+import { ChatsApi } from "../apis/chats-api.js";
+import { ProvidersApi } from "../apis/providers-api.js";
 
 function toErrorMessage(err: unknown): string {
   if (!err) return "Unknown error";
@@ -268,7 +269,9 @@ export async function runCli(argv: string[]): Promise<void> {
   const mockAgentPath = existsSync(mockAgentPathCandidate)
     ? mockAgentPathCandidate
     : path.resolve(process.cwd(), "bin", "mock-agent.mjs");
-  Api.registerHandlerFactory(AgentsApi, () => new AgentsApi({ cwd: process.cwd(), env: process.env, mockAgentPath }));
+  const ctx = { cwd: process.cwd(), env: process.env, mockAgentPath };
+  Api.registerHandlerFactory(ProvidersApi, () => new ProvidersApi(ctx));
+  Api.registerHandlerFactory(ChatsApi, () => new ChatsApi(ctx));
 
   const endpoints = getRegisteredEndpoints();
   const publicEndpoints = endpoints.filter((e) => !e.internal);

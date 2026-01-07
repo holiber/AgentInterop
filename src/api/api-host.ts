@@ -19,11 +19,12 @@ function deterministicGeneratedAt(): string {
 }
 
 async function loadProfileModules(profile: string): Promise<void> {
-  // Tier1: only the built-in Agents API is currently registered.
+  // Tier1: register the built-in Providers + Chats APIs.
   //
   // Future: gate additional dynamic modules by profile/config here.
   void profile;
-  await import("../apis/agents-api.js");
+  await import("../apis/providers-api.js");
+  await import("../apis/chats-api.js");
 }
 
 function isInternalEndpointId(id: string): boolean {

@@ -5,7 +5,11 @@ import type {
 } from "../protocol.js";
 import type { StdioJsonTransport } from "../stdio-transport.js";
 
-export function randomId(prefix: string, nowMs = Date.now(), randomHex = Math.random().toString(16).slice(2, 10)): string {
+export function randomId(
+  prefix: string,
+  nowMs = Date.now(),
+  randomHex = Math.random().toString(16).slice(2, 10)
+): string {
   return `${prefix}-${nowMs}-${randomHex}`;
 }
 

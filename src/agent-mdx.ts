@@ -10,7 +10,7 @@ import {
   type AgentRuntimeConfig,
   type AgentSkill,
   validateAgentRuntimeConfig
-} from "./agnet.js";
+} from "./providers.js";
 import type { JsonObject } from "./protocol.js";
 
 type Heading = { level: number; text: string; line: number };

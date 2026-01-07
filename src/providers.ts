@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import process from "node:process";
 
 import type { JsonObject } from "./protocol.js";
 import { parseAgentMdx } from "./agent-mdx.js";
@@ -207,10 +208,7 @@ export function validateAgentCard(value: unknown, path = "agent"): AgentCard {
   return { id, name, version, description, skills, rules, mcp, auth, extensions };
 }
 
-export function validateAgentRuntimeConfig(
-  value: unknown,
-  path = "runtime"
-): AgentRuntimeConfig {
+export function validateAgentRuntimeConfig(value: unknown, path = "runtime"): AgentRuntimeConfig {
   const obj = requireRecord(value, path);
   const transport = requireNonEmptyString(obj.transport, `${path}.transport`);
 
@@ -239,10 +237,7 @@ export function validateAgentRuntimeConfig(
   throw pathError(`${path}.transport`, `unknown transport "${transport}"`);
 }
 
-export function validateAuthFromEnvRef(
-  value: unknown,
-  path = "authRef"
-): AuthFromEnvRef {
+export function validateAuthFromEnvRef(value: unknown, path = "authRef"): AuthFromEnvRef {
   const obj = requireRecord(value, path);
   const bearerEnv = optionalString(obj.bearerEnv, `${path}.bearerEnv`);
   const apiKeyEnv = optionalString(obj.apiKeyEnv, `${path}.apiKeyEnv`);
@@ -261,8 +256,7 @@ export function validateAgentConfig(value: unknown, path = "$"): AgentConfig {
   const obj = requireRecord(value, path);
   const agent = validateAgentCard(obj.agent, "agent");
   const runtime = validateAgentRuntimeConfig(obj.runtime, "runtime");
-  const authRef =
-    obj.authRef !== undefined ? validateAuthFromEnvRef(obj.authRef, "authRef") : undefined;
+  const authRef = obj.authRef !== undefined ? validateAuthFromEnvRef(obj.authRef, "authRef") : undefined;
   return { agent, runtime, authRef };
 }
 
@@ -324,7 +318,7 @@ export function resolveAuthHeaders(params: {
   return out;
 }
 
-export interface RegisteredAgentRef {
+export interface RegisteredProviderRef {
   id: string;
   card: AgentCard;
   runtime?: AgentRuntimeConfig;
@@ -332,70 +326,47 @@ export interface RegisteredAgentRef {
   getAuthHeaders: () => Record<string, string>;
 }
 
-export class Agnet {
-  private readonly byId = new Map<string, RegisteredAgentRef>();
-
-  register(input: AgentRegistrationInput, opts: RegisterOptions = {}): RegisteredAgentRef {
-    if (typeof input === "string") {
-      const raw = readFileSync(input, "utf-8");
-      if (input.toLowerCase().endsWith(".agent.mdx")) {
-        const config = parseAgentMdx(raw, { path: input });
-        return this.register(config, opts);
-      }
-
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(raw) as unknown;
-      } catch (err) {
-        throw new AgentConfigError(
-          `Failed to parse JSON config at "${input}": ${(err as Error).message}`
-        );
-      }
-      return this.register(parsed as JsonObject, opts);
+export function registerProvider(input: AgentRegistrationInput, opts: RegisterOptions = {}): RegisteredProviderRef {
+  if (typeof input === "string") {
+    const raw = readFileSync(input, "utf-8");
+    if (input.toLowerCase().endsWith(".agent.mdx")) {
+      const config = parseAgentMdx(raw, { path: input });
+      return registerProvider(config, opts);
     }
 
-    if (isObject(input) && "adapter" in input && "card" in input) {
-      const card = validateAgentCard((input as { card: unknown }).card, "card");
-      const adapter = (input as { adapter: AgentAdapter }).adapter;
-      const ref: RegisteredAgentRef = {
-        id: card.id,
-        card,
-        adapter,
-        getAuthHeaders: () =>
-          resolveAuthHeaders({ card, auth: opts.auth, authFromEnv: opts.authFromEnv, env: opts.env })
-      };
-      this.byId.set(card.id, ref);
-      return ref;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch (err) {
+      throw new AgentConfigError(`Failed to parse JSON config at "${input}": ${(err as Error).message}`);
     }
+    return registerProvider(parsed as JsonObject, opts);
+  }
 
-    const config = validateAgentConfig(input as unknown, "$");
-    const mergedRef = mergeAuthFromEnvRefs(config.authRef, opts.authFromEnv);
-    const ref: RegisteredAgentRef = {
-      id: config.agent.id,
-      card: config.agent,
-      runtime: config.runtime,
-      getAuthHeaders: () =>
-        resolveAuthHeaders({
-          card: config.agent,
-          auth: opts.auth,
-          authFromEnv: mergedRef,
-          env: opts.env
-        })
+  if (isObject(input) && "adapter" in input && "card" in input) {
+    const card = validateAgentCard((input as { card: unknown }).card, "card");
+    const adapter = (input as { adapter: AgentAdapter }).adapter;
+    return {
+      id: card.id,
+      card,
+      adapter,
+      getAuthHeaders: () => resolveAuthHeaders({ card, auth: opts.auth, authFromEnv: opts.authFromEnv, env: opts.env })
     };
-    this.byId.set(ref.id, ref);
-    return ref;
   }
 
-  get(agentId: string): RegisteredAgentRef | undefined {
-    return this.byId.get(agentId);
-  }
-
-  list(): RegisteredAgentRef[] {
-    return [...this.byId.values()];
-  }
-
-  listAgents(): AgentCard[] {
-    return this.list().map((r) => r.card);
-  }
+  const config = validateAgentConfig(input as unknown, "$");
+  const mergedRef = mergeAuthFromEnvRefs(config.authRef, opts.authFromEnv);
+  return {
+    id: config.agent.id,
+    card: config.agent,
+    runtime: config.runtime,
+    getAuthHeaders: () =>
+      resolveAuthHeaders({
+        card: config.agent,
+        auth: opts.auth,
+        authFromEnv: mergedRef,
+        env: opts.env
+      })
+  };
 }
 
