@@ -2,12 +2,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import process from "node:process";
 
-import { ApiHost } from "../src/api/api-host.js";
-import { renderApiDocMarkdown } from "../src/api/doc-renderer.js";
+import { createApp } from "../src/app.js";
+import { buildApiSnapshot } from "../src/internal/api-schema.js";
+import { renderApiDocMarkdown } from "../src/api-doc-renderer.js";
 
 async function main(): Promise<void> {
-  const host = new ApiHost({ profile: "default" });
-  const snapshot = await host.getApiSnapshot();
+  const app = createApp();
+  const snapshot = buildApiSnapshot({ schema: app.getApiSchema(), profile: "default" });
 
   const outDir = join(process.cwd(), "docs", "generated");
   await mkdir(outDir, { recursive: true });

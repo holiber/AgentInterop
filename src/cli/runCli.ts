@@ -2,37 +2,15 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
-import type { ApiSchemaNode } from "../workbench-light.js";
 import { createApp, createAppContext } from "../app.js";
+import { flattenApiSchema } from "../internal/api-schema.js";
 import { toErrorMessage } from "../internal/utils.js";
 
 function endpointPathTokens(endpointId: string): string[] {
   return endpointId.split(".").filter(Boolean);
 }
 
-type CliArgType = "string" | "boolean" | "string[]";
-
-type CliArgMeta = {
-  name: string;
-  type: CliArgType;
-  required?: boolean;
-  description?: string;
-  cli?: {
-    flag?: `--${string}`;
-    repeatable?: boolean;
-    aliases?: Array<`--${string}`>;
-    positionalIndex?: number;
-  };
-};
-
-type CliEndpoint = {
-  id: string;
-  pattern: "unary" | "serverStream";
-  internal?: boolean;
-  args: CliArgMeta[];
-  kind: "query" | "mutation" | "stream";
-  callPath: string[];
-};
+type CliEndpoint = ReturnType<typeof flattenApiSchema>[number];
 
 function usage(endpoints: CliEndpoint[]): string {
   const lines: string[] = [];
@@ -145,7 +123,7 @@ function parseEndpointInput(params: {
   const allPositional = [...commandTail, ...positional];
 
   // Build a lookup for known flags to their arg meta.
-  const byFlag = new Map<string, CliArgMeta>();
+  const byFlag = new Map<string, CliEndpoint["args"][number]>();
   for (const arg of params.endpoint.args) {
     if (arg.cli?.flag) byFlag.set(argKeyFromFlag(arg.cli.flag), arg);
     for (const alias of arg.cli?.aliases ?? []) byFlag.set(argKeyFromFlag(alias), arg);
@@ -272,35 +250,6 @@ async function printStream(iterable: AsyncIterable<unknown>): Promise<void> {
   }
 }
 
-function isLeafSchema(node: ApiSchemaNode): node is Extract<ApiSchemaNode, { kind: string }> {
-  return !!node && typeof node === "object" && !Array.isArray(node) && "kind" in node;
-}
-
-function flattenCliEndpoints(schema: ApiSchemaNode): CliEndpoint[] {
-  const out: CliEndpoint[] = [];
-
-  const walk = (node: ApiSchemaNode, callPath: string[]) => {
-    if (isLeafSchema(node)) {
-      const meta = (node as any).meta as any;
-      if (!meta || typeof meta !== "object" || typeof meta.id !== "string") return;
-      const id = meta.id as string;
-      const pattern = (meta.pattern as CliEndpoint["pattern"] | undefined) ?? (node.kind === "stream" ? "serverStream" : "unary");
-      const args = Array.isArray(meta.args) ? (meta.args as CliArgMeta[]) : [];
-      const internal = meta.internal === true;
-      out.push({ id, pattern, internal, args, kind: node.kind as CliEndpoint["kind"], callPath });
-      return;
-    }
-
-    const obj = node as Record<string, ApiSchemaNode>;
-    for (const k of Object.keys(obj)) {
-      walk(obj[k], [...callPath, k]);
-    }
-  };
-
-  walk(schema, []);
-  return out.sort((a, b) => a.id.localeCompare(b.id));
-}
-
 function getByPath(obj: any, pathTokens: string[]): unknown {
   let cur: any = obj;
   for (const k of pathTokens) cur = cur?.[k];
@@ -318,7 +267,7 @@ export async function runCli(argv: string[]): Promise<void> {
     : path.resolve(process.cwd(), "bin", "mock-agent.mjs");
   const ctx = createAppContext({ cwd: process.cwd(), env: process.env, mockAgentPath });
   const app = createApp(ctx);
-  const endpoints = flattenCliEndpoints(app.getApiSchema());
+  const endpoints = flattenApiSchema(app.getApiSchema());
   const publicEndpoints = endpoints.filter((e) => !e.internal);
   const tokens = argv.slice(2);
 

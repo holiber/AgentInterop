@@ -9,19 +9,9 @@ import { z } from "zod";
  * - validates inputs/outputs at runtime via Zod
  * - exposes an introspectable schema tree via `getApiSchema()`
  *
- * Migration notes (initial investigation; DO NOT migrate yet):
- * - Our current API layer is decorator/registry-based (`@Api.endpoint`, `@Api.arg`) and supports
- *   endpoint patterns (unary vs server stream), CLI arg metadata, and handler factories/DI.
- * - Workbench-lite can represent unary request/response endpoints nicely, and the schema tree
- *   could replace/augment parts of doc generation.
- * - Gaps to address before migration:
- *   - streaming endpoints: need a first-class `kind` or pattern type for AsyncIterable outputs
- *   - CLI metadata: current system has rich per-arg CLI mapping; would need a standardized `meta`
- *     schema (or a parallel registry) to preserve existing UX and backwards compatibility flags
- *   - DI/factories: current registry supports handler factories; workbench-lite is functional.
- *     We'd need an adapter layer or a convention to create handler instances.
- * - Likely path (if we proceed): introduce adapters to bridge current registry <-> workbench-lite
- *   schema, validate feasibility for streaming + CLI, then migrate incrementally.
+ * Note:
+ * - This project now uses workbench-light modules as the SSOT for API + schema + CLI metadata.
+ * - workbench-lite remains as a small, schema-first helper with runtime Zod validation.
  */
 
 type UnaryKind = "query" | "mutation";
