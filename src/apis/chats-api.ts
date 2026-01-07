@@ -5,6 +5,7 @@ import { spawnLocalAgent } from "../local-runtime.js";
 import { nextMessage, randomId, sendAndWaitComplete, waitForType } from "../runtime/chat-client.js";
 import { deleteChat, readChat, writeChat } from "../storage/chats.js";
 import { requireNonEmptyString, toErrorMessage } from "../internal/utils.js";
+import { streamOpenAIResponseText } from "../adapters/openai.js";
 import { ProvidersApi, type ProvidersApiContext } from "./providers-api.js";
 
 export interface ChatsApiContext extends ProvidersApiContext {}
@@ -34,8 +35,47 @@ export class ChatsApi {
 
     const chat = await readChat(this.ctx.cwd, resolvedChatId);
     const providerId = chat.providerId ?? "mock-agent";
-    const runtime = await this.providers.resolveCliRuntime(providerId);
+    const providerCfg = await this.providers.resolveProviderConfig(providerId);
 
+    const history = Array.isArray(chat.history) ? (chat.history as ChatMessage[]) : ([] as ChatMessage[]);
+
+    // Tier2: support HTTP runtimes (initially OpenAI Responses API).
+    if (providerCfg.runtime.transport === "http") {
+      const headers = await this.providers.resolveProviderAuthHeaders(providerId);
+      const auth = headers.Authorization ?? headers.authorization;
+      const apiKey = typeof auth === "string" && auth.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : undefined;
+
+      const ext = (providerCfg.agent.extensions ?? {}) as any;
+      const openaiModel = ext?.openai?.model ?? ext?.model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+      const systemPrompt = typeof ext?.systemPrompt === "string" ? ext.systemPrompt : undefined;
+
+      let combined = "";
+      for await (const delta of streamOpenAIResponseText({
+        config: {
+          apiKey,
+          model: String(openaiModel),
+          baseUrl: providerCfg.runtime.baseUrl,
+          systemPrompt
+        },
+        history,
+        prompt: content
+      })) {
+        combined += delta;
+        yield delta;
+      }
+
+      const nextHistory: ChatMessage[] = [
+        ...history,
+        { role: "user", content },
+        { role: "assistant", content: combined }
+      ];
+      await writeChat(this.ctx.cwd, resolvedChatId, { version: 1, chatId: resolvedChatId, providerId, history: nextHistory });
+      if (!combined.endsWith("\n")) yield "\n";
+      return;
+    }
+
+    // Default: local CLI runtime (existing behavior).
+    const runtime = await this.providers.resolveCliRuntime(providerId);
     const conn = spawnLocalAgent({
       command: runtime.command,
       args: Array.isArray(runtime.args) ? runtime.args : [],
@@ -49,7 +89,6 @@ export class ChatsApi {
       await conn.transport.send({ type: "session/start", sessionId: resolvedChatId });
       await waitForType(iter, "session/started");
 
-      const history = Array.isArray(chat.history) ? (chat.history as ChatMessage[]) : ([] as ChatMessage[]);
       const priorUsers = history.filter(
         (m) => m && (m as ChatMessage).role === "user" && typeof (m as ChatMessage).content === "string"
       ) as ChatMessage[];

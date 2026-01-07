@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 
 import type { AgentCard, AgentConfig, AgentRuntimeConfig } from "../providers.js";
-import { validateAgentConfig } from "../providers.js";
+import { resolveAuthHeaders, validateAgentConfig } from "../providers.js";
 import { parseAgentMdx } from "../agent-mdx.js";
 import { isMarkedDefaultAgentCard, toErrorMessage } from "../internal/utils.js";
 import { readProvidersRegistry, writeProvidersRegistry } from "../storage/providers-registry.js";
@@ -67,6 +67,27 @@ export class ProvidersApi {
     const found = registry.providers.find((a) => a?.agent?.id === providerId);
     if (!found) throw new Error(`Unknown provider: ${providerId}`);
     return validateAgentConfig(found);
+  }
+
+  /**
+   * Tier2 helper: fetch the full provider config (including authRef and extensions).
+   */
+  async resolveProviderConfig(providerId: string): Promise<AgentConfig> {
+    return await this.resolveProvider(providerId);
+  }
+
+  /**
+   * Tier2 helper: resolve auth headers for a provider using:
+   * - authRef persisted in the provider config
+   * - current process env (ctx.env)
+   */
+  async resolveProviderAuthHeaders(providerId: string): Promise<Record<string, string>> {
+    const cfg = await this.resolveProvider(providerId);
+    return resolveAuthHeaders({
+      card: cfg.agent,
+      authFromEnv: cfg.authRef,
+      env: this.ctx.env ?? process.env
+    });
   }
 
   /**

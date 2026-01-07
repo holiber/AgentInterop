@@ -8,6 +8,7 @@ import { randomId, sendAndWaitComplete, waitForType } from "./runtime/chat-clien
 import { readChat, writeChat } from "./storage/chats.js";
 import { readProvidersRegistrySync, writeProvidersRegistrySync } from "./storage/providers-registry.js";
 import { isMarkedDefaultAgentCard, stripTrailingNewlineOnce } from "./internal/utils.js";
+import { streamOpenAIResponseText } from "./adapters/openai.js";
 import type {
   AgentConfig,
   AgentRegistrationInput,
@@ -97,6 +98,14 @@ function requireCliRuntime(runtime: AgentRuntimeConfig): Extract<AgentRuntimeCon
   return runtime;
 }
 
+function extractBearerToken(headers: Record<string, string>): string | undefined {
+  const auth = headers.Authorization ?? headers.authorization;
+  if (typeof auth !== "string") return undefined;
+  if (!auth.startsWith("Bearer ")) return undefined;
+  const token = auth.slice("Bearer ".length).trim();
+  return token.length > 0 ? token : undefined;
+}
+
 function isNonEmptyString(x: unknown): x is string {
   return typeof x === "string" && x.trim().length > 0;
 }
@@ -122,6 +131,38 @@ async function runTaskSend(params: {
 }): Promise<{ combined: string; history: ChatMessage[] }> {
   const runtime = params.provider.runtime;
   if (!runtime) throw new Error(`Provider "${params.provider.id}" has no runtime configured`);
+
+  // Tier2: HTTP runtime (initially OpenAI Responses API).
+  if (runtime.transport === "http") {
+    const chat = await readChat(params.cwd, params.chatId);
+    const history = Array.isArray(chat.history) ? (chat.history as ChatMessage[]) : ([] as ChatMessage[]);
+
+    const apiKey = extractBearerToken(params.provider.getAuthHeaders());
+    const ext = (params.provider.card.extensions ?? {}) as any;
+    const openaiModel = ext?.openai?.model ?? ext?.model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+    const systemPrompt = typeof ext?.systemPrompt === "string" ? ext.systemPrompt : undefined;
+
+    let combined = "";
+    for await (const delta of streamOpenAIResponseText({
+      config: {
+        apiKey,
+        model: String(openaiModel),
+        baseUrl: runtime.baseUrl,
+        systemPrompt
+      },
+      history,
+      prompt: params.prompt
+    })) {
+      combined += delta;
+    }
+
+    const nextHistory: ChatMessage[] = [
+      ...history,
+      { role: "user", content: params.prompt },
+      { role: "assistant", content: combined }
+    ];
+    return { combined, history: nextHistory };
+  }
 
   const cli = requireCliRuntime(runtime);
 

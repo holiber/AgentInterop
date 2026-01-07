@@ -134,5 +134,65 @@ Hi
 `;
     expect(() => parseAgentMdx(mdx, { path: "a.agent.mdx" })).toThrowError(/missing required markdown section/i);
   });
+
+  it("allows JSON-serializable frontmatter.extensions and merges with body-derived systemPrompt", () => {
+    const mdx = `---
+id: http-a
+name: HTTP A
+version: 0.1.0
+runtime:
+  transport: http
+  baseUrl: https://api.openai.com/v1
+extensions:
+  openai:
+    model: gpt-4o-mini
+  flags:
+    - a
+    - b
+---
+# Description
+Hi
+
+## System Prompt
+System prompt from body.
+
+## Rules
+
+## Skills
+### chat
+Hi
+`;
+    const cfg = parseAgentMdx(mdx, { path: "http-a.agent.mdx" });
+    const ext = (cfg.agent.extensions as any) ?? {};
+    expect(ext.openai?.model).toBe("gpt-4o-mini");
+    expect(ext.flags).toEqual(["a", "b"]);
+    expect(ext.systemPrompt).toContain("System prompt from body.");
+  });
+
+  it("rejects non-JSON-serializable extension values", () => {
+    const mdx = `---
+id: bad-ext
+name: Bad Ext
+version: 0.1.0
+runtime:
+  transport: http
+  baseUrl: https://example.com
+extensions:
+  weirdNumber: .inf
+---
+# Description
+Hi
+
+## System Prompt
+Ok
+
+## Rules
+
+## Skills
+### chat
+Hi
+`;
+    expect(() => parseAgentMdx(mdx, { path: "bad-ext.agent.mdx" })).toThrow(/extensions\.weirdNumber/i);
+  });
 });
 

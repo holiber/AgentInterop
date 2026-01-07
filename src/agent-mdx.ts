@@ -24,6 +24,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+function isJsonValue(v: unknown): v is unknown {
+  if (v === null) return true;
+  const t = typeof v;
+  if (t === "string" || t === "boolean") return true;
+  if (t === "number") return Number.isFinite(v);
+  if (Array.isArray(v)) return v.every(isJsonValue);
+  if (t === "object") {
+    const obj = v as Record<string, unknown>;
+    return Object.values(obj).every(isJsonValue);
+  }
+  return false;
+}
+
 function collapseWs(s: string): string {
   return s.trim().replace(/\s+/g, " ");
 }
@@ -316,6 +329,19 @@ export function parseAgentMdx(raw: string, opts?: { path?: string }): AgentConfi
   }
 
   const extensions: JsonObject = {};
+
+  // Allow arbitrary JSON-serializable extensions in frontmatter (Tier2+),
+  // while keeping Tier1 conflict rules for known body-derived fields.
+  if (fm.extensions !== undefined) {
+    if (!isRecord(fm.extensions)) throw mdxError(opts?.path, "frontmatter.extensions must be an object");
+    const ext = fm.extensions as Record<string, unknown>;
+    for (const [k, v] of Object.entries(ext)) {
+      if (!isJsonValue(v)) {
+        throw mdxError(opts?.path, `frontmatter.extensions.${k} must be JSON-serializable`);
+      }
+      (extensions as any)[k] = v as any;
+    }
+  }
   if (sysPrompt.trim().length > 0) {
     extensions.systemPrompt = sysPrompt;
   }
