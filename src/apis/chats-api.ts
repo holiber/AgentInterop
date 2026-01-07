@@ -5,22 +5,10 @@ import type { ChatMessage } from "../protocol.js";
 import { spawnLocalAgent } from "../local-runtime.js";
 import { nextMessage, randomId, sendAndWaitComplete, waitForType } from "../runtime/chat-client.js";
 import { deleteChat, readChat, writeChat } from "../storage/chats.js";
+import { requireNonEmptyString, toErrorMessage } from "../internal/utils.js";
 import { ProvidersApi, type ProvidersApiContext } from "./providers-api.js";
 
 export interface ChatsApiContext extends ProvidersApiContext {}
-
-function toErrorMessage(err: unknown): string {
-  if (!err) return "Unknown error";
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
-
-function requireNonEmptyString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`Invalid ${label}: expected non-empty string`);
-  }
-  return value;
-}
 
 export class ChatsApi {
   private readonly providers: ProvidersApi;

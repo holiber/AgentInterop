@@ -5,6 +5,7 @@ import { Api } from "../api/api.js";
 import type { AgentCard, AgentConfig, AgentRuntimeConfig } from "../providers.js";
 import { validateAgentConfig } from "../providers.js";
 import { parseAgentMdx } from "../agent-mdx.js";
+import { isMarkedDefaultAgentCard, toErrorMessage } from "../internal/utils.js";
 import { readProvidersRegistry, writeProvidersRegistry } from "../storage/providers-registry.js";
 
 export interface ProvidersApiContext {
@@ -15,12 +16,6 @@ export interface ProvidersApiContext {
    * Should be an absolute filesystem path to `bin/mock-agent.mjs`.
    */
   mockAgentPath: string;
-}
-
-function toErrorMessage(err: unknown): string {
-  if (!err) return "Unknown error";
-  if (err instanceof Error) return err.message;
-  return String(err);
 }
 
 function parseHeaderEnv(items: string[] | undefined): Record<string, string> {
@@ -41,13 +36,6 @@ function requireCliRuntime(providerId: string, runtime: AgentRuntimeConfig): Ext
     throw new Error(`Provider "${providerId}" does not support local CLI transport`);
   }
   return runtime;
-}
-
-function isMarkedDefaultAgent(agent: AgentCard): boolean {
-  const ext = agent.extensions as unknown;
-  if (!ext || typeof ext !== "object" || Array.isArray(ext)) return false;
-  const obj = ext as Record<string, unknown>;
-  return obj.default === true || obj.isDefault === true;
 }
 
 export class ProvidersApi {
@@ -98,7 +86,7 @@ export class ProvidersApi {
     const persisted = registry.providers.map((a) => validateAgentConfig(a));
     const builtIns = this.getBuiltInProviders();
 
-    const defaults = [...builtIns, ...persisted].filter((p) => isMarkedDefaultAgent(p.agent));
+    const defaults = [...builtIns, ...persisted].filter((p) => isMarkedDefaultAgentCard(p.agent));
     if (defaults.length > 0) return defaults[defaults.length - 1].agent.id;
 
     if (persisted.length > 0) return persisted[persisted.length - 1].agent.id;
