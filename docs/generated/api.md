@@ -11,6 +11,7 @@ Version: **1**
 **Args**
 - `prompt` (string, required)
 - `providerId` (string, optional)
+- `timeoutMs` (string, optional)
 
 ---
 
@@ -35,6 +36,7 @@ Version: **1**
 **Args**
 - `chatId` (string, required)
 - `prompt` (string, required)
+- `timeoutMs` (string, optional)
 
 ---
 
@@ -45,6 +47,7 @@ Version: **1**
 **Args**
 - `prompt` (string, required)
 - `providerId` (string, optional)
+- `timeoutMs` (string, optional)
 
 ---
 
