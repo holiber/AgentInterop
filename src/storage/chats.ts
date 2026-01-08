@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { ChatMessage } from "../protocol.js";
@@ -10,12 +10,42 @@ export interface PersistedChatV1 {
   history: ChatMessage[];
 }
 
+export type PersistedChatRef = {
+  chatId: string;
+  path: string;
+  mtimeMs: number;
+};
+
 export function chatsDir(cwd: string): string {
   return path.join(cwd, ".cache", "agnet", "chats");
 }
 
 export function chatPath(cwd: string, chatId: string): string {
   return path.join(chatsDir(cwd), `${chatId}.json`);
+}
+
+export async function listChats(cwd: string): Promise<PersistedChatRef[]> {
+  const dir = chatsDir(cwd);
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const refs: PersistedChatRef[] = [];
+    for (const ent of entries) {
+      if (!ent.isFile()) continue;
+      if (!ent.name.endsWith(".json")) continue;
+      const chatId = ent.name.slice(0, -".json".length);
+      const p = path.join(dir, ent.name);
+      try {
+        const s = await stat(p);
+        refs.push({ chatId, path: p, mtimeMs: s.mtimeMs });
+      } catch {
+        // Ignore races (deleted between readdir/stat).
+      }
+    }
+    refs.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    return refs;
+  } catch {
+    return [];
+  }
 }
 
 export async function readChat(cwd: string, chatId: string): Promise<PersistedChatV1> {

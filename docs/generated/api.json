@@ -220,6 +220,36 @@
           }
         }
       ]
+    },
+    {
+      "id": "tui",
+      "pattern": "unary",
+      "args": [
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--mode"
+          }
+        },
+        {
+          "name": "providerId",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--provider"
+          }
+        },
+        {
+          "name": "chatId",
+          "type": "string",
+          "required": false,
+          "cli": {
+            "flag": "--chat"
+          }
+        }
+      ]
     }
   ]
 }
