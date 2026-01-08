@@ -59,3 +59,13 @@ console.log(result.text, result.providerId);
 agnet ask "hello"
 agnet prompt "hello" --provider mock-agent
 ```
+
+### TUI (interactive bot testing)
+
+```bash
+# Advanced mode (default): chat list + switch/create/delete, persisted history
+agnet tui
+
+# Simple mode: minimal stdin/stdout loop
+agnet tui --mode simple
+```

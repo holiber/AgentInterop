@@ -77,6 +77,17 @@ Version: **1**
 
 ---
 
+## tui.*
+
+### `tui` (unary)
+
+**Args**
+- `mode` (string, optional)
+- `providerId` (string, optional)
+- `chatId` (string, optional)
+
+---
+
 ## Metadata
 
 - Snapshot schema version: 1
