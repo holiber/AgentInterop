@@ -34,7 +34,7 @@ playwright - для e2e тестов
 
 
 ## Файлы репозитория
-
+<pre>
 .
 ├── .gitignore
 ├── tsconfig.json
@@ -97,3 +97,4 @@ playwright - для e2e тестов
 │
 └── .github/
     └── workflows/
+</pre>
