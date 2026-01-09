@@ -62,9 +62,7 @@ Label Check
 	•	Verify whether additional labels are required:
 	•	bug
 	•	refactor
-	•	proposal
 	•	epic
-	•	autocode (human-applied only)
 	•	Labels signal intent and permissions, not just categorization
 
 Split vs Single Issue
