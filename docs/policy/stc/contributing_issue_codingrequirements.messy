@@ -1,0 +1,132 @@
+---
+version: 0.2.0
+icon: 🧩
+tags:
+  - issues
+  - coding
+  - workflow
+  - ai
+title: Coding Issue Requirements
+description: Defines the required structure and decision rules for issues that involve code changes.
+---
+
+Purpose
+
+This policy defines how to create a task (issue) that requires code changes.
+
+Its goal is to ensure that coding issues are:
+	•	Short but clear
+	•	Understandable by humans and AI agents
+	•	Safe to execute
+	•	Properly scoped
+
+⸻
+
+Scope
+
+This policy applies to any issue that requires writing, modifying, or deleting code.
+
+⸻
+
+Issue Text Requirements
+	•	The issue description must be concise
+	•	The intent and motivation must be explicit
+	•	Avoid long narratives and implicit assumptions
+
+⸻
+
+Required Section: Intent
+
+Any issue that requires code changes must contain the following section.
+
+## Intent
+
+### What we are doing
+(Describe the concrete changes to be made)
+
+### Why we are doing this
+(Explain the problem, value, or motivation)
+
+Rules:
+	•	Both subsections are required
+	•	“Why” must not restate “What”
+	•	The text must be understandable without external context
+
+⸻
+
+Issue Scoping & Labeling
+
+When creating a coding issue, think explicitly about scope.
+
+Label Check
+	•	Verify whether additional labels are required:
+	•	bug
+	•	refactor
+	•	proposal
+	•	epic
+	•	autocode (human-applied only)
+	•	Labels signal intent and permissions, not just categorization
+
+Split vs Single Issue
+	•	Do not split an issue into multiple ones if:
+	•	The total expected code change is small or moderate
+(≈ < 600 lines of code)
+	•	The work is logically cohesive
+	•	In such cases, prefer:
+	•	A single issue
+	•	A TODO checklist inside the issue
+	•	Incremental pushes
+	•	Checking completed TODO items ✅
+
+When to Split or Create an Epic
+
+Consider splitting the work or creating an Epic if:
+	•	The issue spans multiple independent concerns
+	•	The work naturally forms stages or tiers
+	•	The scope is unclear or exploratory
+	•	The expected implementation is large or risky
+
+⸻
+
+Relationship to Coding Workflow Policy
+
+All coding issues must follow:
+
+contributing_issue_codingworkflow
+
+This policy defines the full lifecycle:
+	•	Starting work
+	•	Implementing changes
+	•	Validation and review
+
+⸻
+
+AI Agent Rules (IMPORTANT)
+
+Additional constraints apply when an issue is executed by an AI agent:
+	•	AI agents must follow:
+	•	contributing_issue_codingworkflow
+	•	AI agents must not infer missing intent
+	•	If the Intent section is missing or unclear:
+	•	The AI agent must stop
+	•	A clarification or proposal issue must be created
+
+⸻
+
+Recommendations (Explicitly Optional)
+
+The following sections are recommended, not required:
+	•	Acceptance criteria
+	•	Known risks or edge cases
+	•	Non-goals
+	•	Related issues or epics
+
+Optional sections must be clearly marked as such.
+
+⸻
+
+General Principles
+	•	Short and clear beats detailed and vague
+	•	One well-scoped issue is better than many tiny ones
+	•	Use epics for coordination, not bureaucracy
+	•	If an AI agent cannot confidently execute the issue, the issue is invalid
