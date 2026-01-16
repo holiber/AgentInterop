@@ -40,4 +40,20 @@ Proposal goals:
 
 ## Current Frameworks
 
-Сейчас ведется разработка Typescript Stc фреймворка
+Сейчас ведется разработка STCjs фреймворка ориентированного на разработку с помощью ts/js
+
+Большинство сущностей реализуют тип STC.Brick<TMeta = undefined> = { id?, brickType: string, meta: TMeta }
+
+Если объекту требуется очистка памяти по уничтожению то он реализует STC.Disposable тип и имеет массив dispossables и метод dispose. Есть тип STC.Subscribable который обычно всегда применим только к Disposable объектам
+
+Есть Channel который опысывает канал событий он является Disposable и Subscribable
+
+Есть тип STC.Collection для работы с коллекциями. Причем берется за правило что у нас в первую очередь создается stateless сущности, а во второую statefull. STC.Collection - это Stateless Collection STC.Collection<TRecodType, TMetaType, TQueryEngine = 'mingo'>. Если нужно хранить данные в памяти то используется STC.StatefullCollection. Для многих entities есть тип descriptor типы. Например CollectionDescriptor, ChatDescriptor. Чаще всего они служат для того чтобы представлять минимальную информацию об объекте (id, type, title иногда meta ) в списках. Дескрипторы должны быть сериализуемы
+
+Тип STC.Module описывает модуль приложения. Модули компонуются друг в друга, корневой модуль становится корнем приложения. Модули стараются быть независимыми, таким образом одтельный модуль может запускаться как отдельное приложение
+
+
+
+
+
+
